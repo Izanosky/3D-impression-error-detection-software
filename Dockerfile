@@ -1,5 +1,8 @@
 FROM python:3.10
 
+RUN apt-get update && apt-get install -y libgl1-mesa-glx
+
+
 # Establece el directorio de trabajo
 WORKDIR /app
 
@@ -7,7 +10,7 @@ WORKDIR /app
 COPY . .
 
 # Instala las dependencias del proyecto
-RUN pip install -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Define el comando de ejecución del contenedor
 CMD ["python", "main.py"]

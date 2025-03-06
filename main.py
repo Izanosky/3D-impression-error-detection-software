@@ -1,6 +1,6 @@
 import cv2 as op
 
-img = op.VideoCapture(0)
+img = op.VideoCapture()
 
 while img.isOpened():
     ret, frame = img.read()
