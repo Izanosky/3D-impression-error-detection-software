@@ -1,8 +1,17 @@
-import OpenCV as op
+import cv2 as op
 
+img = op.VideoCapture(0)
 
+while img.isOpened():
+    ret, frame = img.read()
+    
+    if not ret:
+        break
+    
+    op.imshow("Captura en Vivo", frame)
 
-op.run()
+    if op.waitKey(1) & 0xFF == ord('q'):
+        break
 
-print("Esta corriendo")
-
+img.release()
+op.destroyAllWindows()
