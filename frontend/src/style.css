@@ -1,0 +1,29 @@
+:root {
+  --primary-color: #6366f1;
+  --surface-ground: #1a1a2e;
+  --surface-card: #16213e;
+  --surface-border: #0f3460;
+  --text-color: #e4e4e7;
+  --text-color-secondary: #a1a1aa;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: linear-gradient(135deg, var(--surface-ground) 0%, #0f0f1a 100%);
+  color: var(--text-color);
+  min-height: 100vh;
+}
+
+#app {
+  min-height: 100vh;
+}
+
+.dark-mode {
+  color-scheme: dark;
+}

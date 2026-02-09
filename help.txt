@@ -1,0 +1,2 @@
+Para acceder al entorno virtual, ejecuta setup_env.bat
+(Lo creará si es la primera vez, o lo activará si ya existe)
