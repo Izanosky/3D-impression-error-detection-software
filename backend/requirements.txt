@@ -4,3 +4,4 @@ httpx
 inference-sdk
 pillow
 python-multipart
+websockets

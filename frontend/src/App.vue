@@ -10,6 +10,9 @@
     <header class="app-header">
       <h1><i class="pi pi-box"></i> Monitor de Impresora 3D</h1>
       <div class="header-actions">
+        <span v-if="wsConnected" class="ws-indicator">
+          <i class="pi pi-bolt"></i>
+        </span>
         <Button 
           icon="pi pi-cog" 
           severity="secondary" 
@@ -55,6 +58,9 @@ const STORAGE_KEY = 'printer_monitor_backend_url'
 const showSettings = ref(false)
 const isFirstTime = ref(false)
 const backendUrl = ref('')
+const wsConnected = ref(false)
+
+let websocket = null
 
 const status = ref({
   connected: false,
@@ -70,7 +76,6 @@ const detections = ref({
 })
 
 const snapshotUrl = ref('')
-let pollInterval = null
 
 const isPrinting = computed(() => 
   status.value.state?.toLowerCase().includes('print')
@@ -80,88 +85,99 @@ const isPaused = computed(() =>
   status.value.state?.toLowerCase().includes('paus')
 )
 
-function getApiUrl(endpoint) {
-  if (!backendUrl.value) return endpoint
+function getWsUrl() {
   let base = backendUrl.value
-  if (!base.startsWith('http://') && !base.startsWith('https://')) {
-    base = 'http://' + base
-  }
-  return `${base}${endpoint}`
+  if (!base) return null
+  
+  // Limpiar protocolo HTTP si existe
+  base = base.replace(/^https?:\/\//, '')
+  
+  return `ws://${base}/ws`
 }
 
-async function fetchStatus() {
-  if (!backendUrl.value) return
+function connectWebSocket() {
+  const wsUrl = getWsUrl()
+  if (!wsUrl) return
   
-  try {
-    const response = await fetch(getApiUrl('/api/status'))
-    if (response.ok) {
-      status.value = await response.json()
+  console.log('Conectando a WebSocket:', wsUrl)
+  
+  websocket = new WebSocket(wsUrl)
+  
+  websocket.onopen = () => {
+    console.log('WebSocket conectado')
+    wsConnected.value = true
+  }
+  
+  websocket.onmessage = (event) => {
+    try {
+      const message = JSON.parse(event.data)
+      
+      if (message.type === 'update') {
+        // Actualizar datos desde el servidor
+        if (message.data.status) {
+          status.value = message.data.status
+        }
+        if (message.data.detections) {
+          detections.value = message.data.detections
+        }
+        if (message.data.snapshot) {
+          snapshotUrl.value = message.data.snapshot
+        }
+      } else if (message.type === 'command_result') {
+        console.log(`Comando ${message.action}: ${message.success ? 'OK' : 'Error'}`)
+      }
+    } catch (error) {
+      console.error('Error procesando mensaje WebSocket:', error)
     }
-  } catch (error) {
-    console.error('Error fetching status:', error)
+  }
+  
+  websocket.onclose = () => {
+    console.log('WebSocket desconectado, reconectando en 3s...')
+    wsConnected.value = false
     status.value.connected = false
+    
+    // Reconectar automáticamente
+    setTimeout(() => {
+      if (backendUrl.value) {
+        connectWebSocket()
+      }
+    }, 3000)
   }
-}
-
-async function fetchDetections() {
-  if (!backendUrl.value) return
   
-  try {
-    const response = await fetch(getApiUrl('/api/detections'))
-    if (response.ok) {
-      detections.value = await response.json()
-    }
-  } catch (error) {
-    console.error('Error fetching detections:', error)
+  websocket.onerror = (error) => {
+    console.error('Error WebSocket:', error)
+    wsConnected.value = false
   }
 }
 
-function updateSnapshot() {
-  if (!backendUrl.value) return
-  snapshotUrl.value = getApiUrl(`/api/snapshot?t=${Date.now()}`)
-}
-
-async function pausePrint() {
-  try {
-    await fetch(getApiUrl('/api/pause'), { method: 'POST' })
-    await fetchStatus()
-  } catch (error) {
-    console.error('Error pausing:', error)
+function disconnectWebSocket() {
+  if (websocket) {
+    websocket.close()
+    websocket = null
   }
 }
 
-async function resumePrint() {
-  try {
-    await fetch(getApiUrl('/api/resume'), { method: 'POST' })
-    await fetchStatus()
-  } catch (error) {
-    console.error('Error resuming:', error)
+function sendCommand(action) {
+  if (websocket && websocket.readyState === WebSocket.OPEN) {
+    websocket.send(JSON.stringify({ action }))
   }
+}
+
+function pausePrint() {
+  sendCommand('pause')
+}
+
+function resumePrint() {
+  sendCommand('resume')
 }
 
 function onSettingsSaved(url) {
   backendUrl.value = url.replace(/^https?:\/\//, '')
   isFirstTime.value = false
-  startPolling()
-}
-
-function startPolling() {
-  // Limpiar intervalo anterior
-  if (pollInterval) {
-    clearInterval(pollInterval)
-  }
   
-  // Fetch inicial
-  fetchStatus()
-  fetchDetections()
-  updateSnapshot()
-  
-  // Polling cada 3 segundos
-  pollInterval = setInterval(() => {
-    fetchStatus()
-    fetchDetections()
-    updateSnapshot()
-  }, 3000)
+  // Desconectar WebSocket anterior y reconectar
+  disconnectWebSocket()
+  connectWebSocket()
 }
 
 onMounted(() => {
@@ -170,7 +186,7 @@ onMounted(() => {
   
   if (savedUrl) {
     backendUrl.value = savedUrl
-    startPolling()
+    connectWebSocket()
   } else {
     // Primera vez: mostrar modal obligatorio
     isFirstTime.value = true
@@ -179,9 +195,7 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
-  if (pollInterval) {
-    clearInterval(pollInterval)
-  }
+  disconnectWebSocket()
 })
 </script>
 
@@ -217,6 +231,20 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 1rem;
+}
+
+.ws-indicator {
+  color: #22c55e;
+  animation: pulse 2s infinite;
+}
+
+.ws-indicator i {
+  font-size: 1rem;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
 }
 
 .app-main {
