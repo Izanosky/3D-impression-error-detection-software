@@ -13,7 +13,7 @@ CLIENT = InferenceHTTPClient(
 )
 
 # Imagen a analizar
-image_path = r""
+image_path = r"C:\Users\izanj\OneDrive\Imágenes\Capturas de pantalla\Captura de pantalla 2026-02-10 124930.png"
 
 if not os.path.exists(image_path):
     print(f"ERROR: No se encontró la imagen en: {image_path}")
@@ -84,8 +84,7 @@ try:
             boxes=boxes_tensor,
             labels=labels,
             colors=colors,
-            width=3,
-            font_size=16,
+            width=3
         )
 
         # Convertir a PIL y guardar
