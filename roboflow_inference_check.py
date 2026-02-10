@@ -1,43 +1,100 @@
 from inference_sdk import InferenceHTTPClient
+import torch
+import torchvision
+from torchvision.io import read_image
+from torchvision.utils import draw_bounding_boxes
+from torchvision.transforms.functional import to_pil_image
 import os
 
-# Configuración del cliente (usando la clave proporcionada)
+# Configuración del cliente
 CLIENT = InferenceHTTPClient(
     api_url="https://serverless.roboflow.com",
     api_key="PZCqeY4aWL1dSF0Npry5"
 )
 
-# Buscar una imagen válida en el directorio actual
-# El código original era: result = CLIENT.infer(your_image.jpg, model_id="3d-printer-error-detection/5")
-# Asumimos que 'your_image.jpg' se refiere a un archivo de imagen.
+# Imagen a analizar
+image_path = r"C:\Users\izanj\OneDrive\Imágenes\Capturas de pantalla\Captura de pantalla 2026-02-09 103747.png"
 
-image_files = [f for f in os.listdir('.') if f.lower().endswith(('.jpg', '.jpeg', '.png'))]
-if image_files:
-    image_path = image_files[0]
-    print(f"Usando imagen encontrada: {image_path}")
-else:
-    # Si no hay imagen, creamos una imagen negra de prueba para verificar conectividad
-    print("No se encontraron imágenes. Intentando usar una imagen de prueba generada...")
-    try:
-        from PIL import Image
-        img = Image.new('RGB', (640, 640), color = 'red')
-        image_path = "test_gen_image.jpg"
-        img.save(image_path)
-        print(f"Imagen de prueba generada: {image_path}")
-    except ImportError:
-        print("No se encontraron imágenes y PIL no está instalado para generar una.")
-        print("Por favor, coloca una imagen .jpg en este directorio.")
-        image_path = "test_image.jpg" # Fallback a nombre por defecto
+if not os.path.exists(image_path):
+    print(f"ERROR: No se encontró la imagen en: {image_path}")
+    exit(1)
 
-print(f"Iniciando inferencia en {image_path} con el modelo '3d-printer-error-detection/5'...")
+print(f"Usando imagen: {image_path}")
+print(f"Iniciando inferencia con el modelo '3d-printer-error-detection/5'...")
 
 try:
     # Realizar la inferencia
     result = CLIENT.infer(image_path, model_id="3d-printer-error-detection/5")
-    
-    # Mostrar el resultado
+
+    # Mostrar el resultado raw
     print("\nResultado de la inferencia:")
     print(result)
-    
+
+    # Dibujar bounding boxes sobre la imagen
+    predictions = result.get("predictions", [])
+    print(f"\nDetecciones encontradas: {len(predictions)}")
+
+    if predictions:
+        # Leer imagen como tensor (C, H, W) uint8 — formato requerido por draw_bounding_boxes
+        img_tensor = read_image(image_path)
+
+        # Construir tensor de bounding boxes [N, 4] en formato (x1, y1, x2, y2)
+        boxes = []
+        labels = []
+        colors = []
+
+        COLOR_PALETTE = [
+            "red", "lime", "blue", "orange", "magenta", "cyan", "yellow",
+            "deeppink", "springgreen", "dodgerblue",
+        ]
+        class_color_map = {}
+        color_idx = 0
+
+        for pred in predictions:
+            x, y = pred["x"], pred["y"]
+            w, h = pred["width"], pred["height"]
+            confidence = pred["confidence"]
+            class_name = pred["class"]
+
+            x1 = x - w / 2
+            y1 = y - h / 2
+            x2 = x + w / 2
+            y2 = y + h / 2
+
+            boxes.append([x1, y1, x2, y2])
+            labels.append(f"{class_name} {confidence:.1%}")
+
+            # Asignar color por clase
+            if class_name not in class_color_map:
+                class_color_map[class_name] = COLOR_PALETTE[color_idx % len(COLOR_PALETTE)]
+                color_idx += 1
+            colors.append(class_color_map[class_name])
+
+            print(f"  - {class_name}: {confidence:.1%} en ({int(x1)}, {int(y1)}) -> ({int(x2)}, {int(y2)})")
+
+        boxes_tensor = torch.tensor(boxes, dtype=torch.float)
+
+        # Dibujar bounding boxes con torchvision
+        result_tensor = draw_bounding_boxes(
+            img_tensor,
+            boxes=boxes_tensor,
+            labels=labels,
+            colors=colors,
+            width=3,
+            font_size=16,
+        )
+
+        # Convertir a PIL y guardar
+        result_img = to_pil_image(result_tensor)
+        output_dir = os.path.dirname(os.path.abspath(__file__))
+        output_path = os.path.join(output_dir, "resultado_deteccion.png")
+        result_img.save(output_path)
+        print(f"\nImagen con bounding boxes guardada en: {output_path}")
+
+        # Mostrar la imagen
+        result_img.show()
+    else:
+        print("No se detectaron errores en la imagen.")
+
 except Exception as e:
     print(f"\nError durante la inferencia: {e}")
