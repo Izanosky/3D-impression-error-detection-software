@@ -13,7 +13,7 @@ CLIENT = InferenceHTTPClient(
 )
 
 # Imagen a analizar
-image_path = r"C:\Users\izanj\OneDrive\Imágenes\Capturas de pantalla\Captura de pantalla 2026-02-09 103747.png"
+image_path = r""
 
 if not os.path.exists(image_path):
     print(f"ERROR: No se encontró la imagen en: {image_path}")
@@ -37,6 +37,10 @@ try:
     if predictions:
         # Leer imagen como tensor (C, H, W) uint8 — formato requerido por draw_bounding_boxes
         img_tensor = read_image(image_path)
+
+        # Si la imagen tiene 4 canales (RGBA), descartar el canal alfa para convertirla a RGB
+        if img_tensor.shape[0] == 4:
+            img_tensor = img_tensor[:3, :, :]
 
         # Construir tensor de bounding boxes [N, 4] en formato (x1, y1, x2, y2)
         boxes = []

@@ -50,3 +50,7 @@ coverage/
 .npm/
 .yarn/
 .pnp.*
+
+
+# Imagenes de prueba
+*.png
