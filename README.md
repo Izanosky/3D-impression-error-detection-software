@@ -173,27 +173,100 @@ Usuario pulsa "Pausar":
 
 ## 🚀 Instalación
 
-```bash
-# Opción 1: Instalar todo
-setup_env.bat
+### Opción rápida: instalar todo a la vez
 
-# Opción 2: Instalar por separado
-cd backend && install.bat
-cd frontend && install.bat
+Desde la carpeta raíz del proyecto, ejecuta:
+
+```bash
+setup_env.bat
 ```
+
+Esto instalará tanto el backend como el frontend automáticamente.
+
+---
+
+### Opción manual: instalar por separado
+
+#### 🔧 Backend (Python + FastAPI)
+
+**Requisitos previos:**
+- [Python 3.10](https://www.python.org/downloads/) instalado (asegúrate de marcar "Add to PATH" durante la instalación)
+
+**Pasos:**
+
+1. Abre una terminal y navega a la carpeta del backend:
+   ```bash
+   cd backend
+   ```
+
+2. Ejecuta el script de instalación:
+   ```bash
+   install.bat
+   ```
+   Esto creará un entorno virtual con Python 3.10 (`.venv`) e instalará todas las dependencias del archivo `requirements.txt`.
+
+3. **(Alternativa manual)** Si prefieres hacerlo paso a paso:
+   ```bash
+   py -3.10 -m venv .venv
+   .venv\Scripts\activate
+   pip install -r requirements.txt
+   ```
+
+---
+
+#### 🎨 Frontend (Vue.js + Vite)
+
+**Requisitos previos:**
+- [Node.js 18+](https://nodejs.org/) instalado
+
+**Pasos:**
+
+1. Abre una terminal y navega a la carpeta del frontend:
+   ```bash
+   cd frontend
+   ```
+
+2. Ejecuta el script de instalación:
+   ```bash
+   install.bat
+   ```
+   Esto ejecutará `npm install` y descargará todas las dependencias definidas en `package.json`.
+
+3. **(Alternativa manual)** Si prefieres hacerlo directamente:
+   ```bash
+   npm install
+   ```
+
+---
 
 ## ▶️ Ejecución
 
+Necesitas **dos terminales** abiertas simultáneamente:
+
+### Terminal 1 — Backend
+
 ```bash
-# Terminal 1 - Backend
 cd backend
 .venv\Scripts\activate
 uvicorn app.main:app --host 0.0.0.0 --port 8000
+```
 
-# Terminal 2 - Frontend
+El backend estará disponible en `http://localhost:8000`.
+
+### Terminal 2 — Frontend
+
+```bash
 cd frontend
 npm run dev
 ```
+
+El frontend estará disponible en `http://localhost:5173`.
+
+### 🔗 Primera conexión
+
+1. Abre `http://localhost:5173` en tu navegador
+2. La primera vez te pedirá la **dirección IP del backend** (si ejecutas todo en la misma máquina, introduce `localhost:8000`)
+3. El sistema se conectará por WebSocket y empezará a mostrar datos en tiempo real
 
 ---
 
@@ -213,13 +286,25 @@ TFG/
 │   └── install.bat
 ├── frontend/
 │   ├── src/
-│   │   ├── App.vue              # Componente principal
+│   │   ├── App.vue              # Shell principal (header + router-view)
+│   │   ├── main.js              # Punto de entrada (plugins)
+│   │   ├── style.css            # Estilos globales
+│   │   ├── router/
+│   │   │   └── index.js         # Definición de rutas
+│   │   ├── stores/
+│   │   │   └── printer.js       # Estado global (Pinia)
+│   │   ├── views/
+│   │   │   ├── HomeView.vue     # Página de inicio
+│   │   │   ├── MonitorView.vue  # Dashboard de monitorización
+│   │   │   └── AboutView.vue    # Información del proyecto
 │   │   └── components/
+│   │       ├── AppHeader.vue    # Cabecera/navegación
 │   │       ├── CameraView.vue   # Vista de cámara
 │   │       ├── PrinterStatus.vue # Estado impresora
 │   │       ├── ControlPanel.vue  # Botones control
 │   │       └── SettingsDialog.vue # Configuración
 │   ├── package.json
 │   └── install.bat
-└── setup_env.bat
+├── setup_env.bat                # Instalación completa
+└── README.md
 ```
