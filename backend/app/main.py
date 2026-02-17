@@ -7,14 +7,14 @@ import base64
 from typing import Set
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Response, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, File, Response, UploadFile, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-from .octoprint_client import octoprint_client
-from .roboflow_client import roboflow_client
-from .image_processor import draw_detections, get_detection_summary
-from .config import load_settings, save_settings
+from app.octoprint_client import octoprint_client
+from app.roboflow_client import roboflow_client
+from app.image_processor import draw_detections, get_detection_summary
+from app.config import load_settings, save_settings
 
 
 # Gestión de clientes WebSocket conectados
@@ -50,8 +50,11 @@ async def broadcast_updates():
     while True:
         if manager.active_connections:
             try:
-                # Obtener estado de OctoPrint
-                status_raw = await octoprint_client.get_printer_status()
+                # Obtener estado de OctoPrint (síncrono, ejecutar en thread)
+                loop = asyncio.get_event_loop()
+                status_raw = await loop.run_in_executor(
+                    None, octoprint_client.get_printer_status
+                )
                 printer = status_raw.get("printer", {})
                 job = status_raw.get("job", {})
                 
@@ -72,7 +75,9 @@ async def broadcast_updates():
                 }
                 
                 # Obtener imagen y detecciones
-                image_bytes = await octoprint_client.get_snapshot()
+                image_bytes = await loop.run_in_executor(
+                    None, octoprint_client.get_snapshot
+                )
                 snapshot_b64 = None
                 detections = {"has_errors": False, "total_detections": 0, "classes": {}}
                 
@@ -154,18 +159,42 @@ async def websocket_endpoint(websocket: WebSocket):
             data = await websocket.receive_json()
             action = data.get("action")
             
+            loop = asyncio.get_event_loop()
+            
             if action == "pause":
-                success = await octoprint_client.pause_print()
+                success = await loop.run_in_executor(
+                    None, octoprint_client.pause_print
+                )
                 await websocket.send_json({
                     "type": "command_result",
                     "action": "pause",
                     "success": success
                 })
             elif action == "resume":
-                success = await octoprint_client.resume_print()
+                success = await loop.run_in_executor(
+                    None, octoprint_client.resume_print
+                )
                 await websocket.send_json({
                     "type": "command_result",
                     "action": "resume",
+                    "success": success
+                })
+            elif action == "cancel":
+                success = await loop.run_in_executor(
+                    None, octoprint_client.cancel_print
+                )
+                await websocket.send_json({
+                    "type": "command_result",
+                    "action": "cancel",
+                    "success": success
+                })
+            elif action == "start":
+                success = await loop.run_in_executor(
+                    None, octoprint_client.start_print
+                )
+                await websocket.send_json({
+                    "type": "command_result",
+                    "action": "start",
                     "success": success
                 })
     except WebSocketDisconnect:
@@ -215,7 +244,10 @@ async def update_settings(new_settings: SettingsModel):
 @app.get("/api/status")
 async def get_status():
     """Obtiene el estado actual (también disponible vía WebSocket)"""
-    status = await octoprint_client.get_printer_status()
+    loop = asyncio.get_event_loop()
+    status = await loop.run_in_executor(
+        None, octoprint_client.get_printer_status
+    )
     printer = status.get("printer", {})
     job = status.get("job", {})
     
@@ -234,3 +266,45 @@ async def get_status():
         },
         "error": status.get("error")
     }
+
+
+@app.post("/api/upload")
+async def upload_gcode(file: UploadFile = File(...)):
+    """Sube un archivo G-code a OctoPrint"""
+    if not file.filename.lower().endswith(('.gcode', '.gco', '.g')):
+        return {"success": False, "error": "El archivo debe ser .gcode, .gco o .g"}
+    
+    content = await file.read()
+    loop = asyncio.get_event_loop()
+    result = await loop.run_in_executor(
+        None, octoprint_client.upload_gcode, content, file.filename
+    )
+    return result
+
+
+@app.get("/api/files")
+async def list_files():
+    """Lista los archivos G-code disponibles en OctoPrint"""
+    loop = asyncio.get_event_loop()
+    files = await loop.run_in_executor(
+        None, octoprint_client.list_files
+    )
+    return {"files": files}
+
+
+@app.post("/api/files/select/{filename}")
+async def select_file(filename: str):
+    """Selecciona un archivo G-code para imprimir"""
+    loop = asyncio.get_event_loop()
+    success = await loop.run_in_executor(
+        None, octoprint_client.select_file, filename
+    )
+    return {
+        "success": success,
+        "message": f"Archivo '{filename}' seleccionado" if success else "Error al seleccionar archivo"
+    }
+
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)

@@ -9,7 +9,7 @@ CONFIG_FILE = Path(__file__).parent.parent / "settings.json"
 # Valores por defecto
 DEFAULT_SETTINGS = {
     "octoprint_url": "http://localhost:5000",
-    "octoprint_api_key": "",
+    "octoprint_api_key": "CeclUduugORg1EYpcgEP-2b1UXRwzkXWUX5tAwqFCpI",
     "roboflow_api_key": "PZCqeY4aWL1dSF0Npry5",
     "confidence_threshold": 0.5
 }

@@ -1,5 +1,6 @@
 # General
 .DS_Store
+Thumbs.db
 .vscode/
 .idea/
 *.log
@@ -32,7 +33,8 @@ htmlcov/
 .tox/
 .nox/
 .mypy_cache/
-## Environments
+
+## Python environments
 .env
 .venv
 env/
@@ -45,12 +47,25 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
-dist/
-coverage/
 .npm/
 .yarn/
 .pnp.*
 
+# Build outputs
+dist/
+coverage/
 
-# Imagenes de prueba
-*.png
+# Backend config (generated at runtime, may contain secrets)
+backend/settings.json
+
+# Logs / setup artifacts
+setup_log.txt
+
+# Environment files (may contain secrets)
+.env
+.env.*
+.env.local
+.env.*.local
+
+# OS generated
+Desktop.ini

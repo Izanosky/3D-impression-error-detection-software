@@ -25,5 +25,5 @@ echo.
 echo === Backend listo! ===
 echo.
 echo Para ejecutar:
-echo   .venv\Scripts\activate
+echo   .venv310\Scripts\activate
 echo   uvicorn app.main:app --host 0.0.0.0 --port 8000

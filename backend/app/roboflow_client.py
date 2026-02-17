@@ -2,14 +2,14 @@
 Cliente para comunicación con Roboflow API
 """
 from inference_sdk import InferenceHTTPClient
-from .config import ROBOFLOW_API_URL, ROBOFLOW_API_KEY, ROBOFLOW_MODEL_ID
+from app.config import ROBOFLOW_API_URL, ROBOFLOW_MODEL_ID, get_setting
 
 
 class RoboflowClient:
     def __init__(self):
         self.client = InferenceHTTPClient(
             api_url=ROBOFLOW_API_URL,
-            api_key=ROBOFLOW_API_KEY
+            api_key=get_setting("roboflow_api_key")
         )
         self.model_id = ROBOFLOW_MODEL_ID
     
