@@ -1,97 +1,69 @@
 <template>
-  <Card class="status-card">
-    <template #title>
-      <div class="card-header">
-        <i class="pi pi-chart-bar"></i>
-        <span>Estado de Impresión</span>
-      </div>
-    </template>
-    <template #content>
-      <!-- Estado -->
-      <div class="status-item">
-        <span class="label">Estado</span>
-        <Tag :value="status.state" :severity="stateSeverity" />
-      </div>
+  <div class="status-panel">
+    <div class="panel-header">
+      <span>Estadísticas</span>
+    </div>
 
-      <!-- Progreso -->
-      <div class="status-item">
-        <span class="label">Progreso</span>
-        <div class="progress-container">
-          <ProgressBar :value="Math.round(status.job?.progress || 0)" 
-                       :showValue="true" />
-        </div>
-      </div>
-
+    <div class="panel-content">
       <!-- Archivo -->
-      <div class="status-item">
-        <span class="label">Archivo</span>
-        <span class="value">{{ status.job?.file || 'Sin archivo' }}</span>
+      <div class="status-group">
+        <div class="info-box file-box" :title="status.job?.file || 'N/A'">
+          <span class="info-label">Archivo en impresión:</span>
+          <span class="info-value file-name">{{ status.job?.file || 'N/A' }}</span>
+        </div>
       </div>
 
       <!-- Temperaturas -->
-      <div class="temperatures">
-        <div class="temp-item">
-          <i class="pi pi-sun"></i>
-          <div class="temp-info">
-            <span class="temp-label">Extrusor</span>
-            <span class="temp-value">
-              {{ formatTemp(status.temperatures?.tool0?.actual) }} / 
-              {{ formatTemp(status.temperatures?.tool0?.target) }}
-            </span>
+      <div class="temp-grid">
+        <div class="status-group">
+          <div class="info-box temp-box">
+            <div class="temp-label-group">
+              <span>Temperatura</span>
+              <span>del extrusor:</span>
+            </div>
+            <span class="temp-value">{{ formatTemp(status.temperatures?.tool0?.actual) }}</span>
           </div>
         </div>
-        <div class="temp-item">
-          <i class="pi pi-table"></i>
-          <div class="temp-info">
-            <span class="temp-label">Cama</span>
-            <span class="temp-value">
-              {{ formatTemp(status.temperatures?.bed?.actual) }} / 
-              {{ formatTemp(status.temperatures?.bed?.target) }}
-            </span>
+
+        <div class="status-group">
+          <div class="info-box temp-box">
+            <div class="temp-label-group">
+              <span>Temperatura</span>
+              <span>de la cama:</span>
+            </div>
+            <span class="temp-value">{{ formatTemp(status.temperatures?.bed?.actual) }}</span>
           </div>
         </div>
       </div>
 
       <!-- Tiempos -->
-      <div class="times">
-        <div class="time-item">
-          <span class="label">Tiempo transcurrido</span>
-          <span class="value">{{ formatTime(status.job?.time_elapsed) }}</span>
-        </div>
-        <div class="time-item">
-          <span class="label">Tiempo restante</span>
-          <span class="value">{{ formatTime(status.job?.time_remaining) }}</span>
+      <div class="status-group">
+        <div class="info-box time-box">
+          <div class="time-row">
+            <span>Tiempo de impresión:</span>
+            <span>{{ formatTime(status.job?.time_elapsed) }}</span>
+          </div>
+          <div class="time-row">
+            <span>Tiempo restante:</span>
+            <span>{{ formatTime(status.job?.time_remaining) }}</span>
+          </div>
         </div>
       </div>
-    </template>
-  </Card>
+    </div>
+  </div>
 </template>
 
 <script setup>
-import { computed } from 'vue'
-import Card from 'primevue/card'
-import Tag from 'primevue/tag'
-import ProgressBar from 'primevue/progressbar'
-
-const props = defineProps({
+defineProps({
   status: {
     type: Object,
     default: () => ({})
   }
 })
 
-const stateSeverity = computed(() => {
-  const state = props.status.state?.toLowerCase() || ''
-  if (state.includes('print')) return 'info'
-  if (state.includes('paus')) return 'warning'
-  if (state.includes('error')) return 'danger'
-  if (state.includes('ready') || state.includes('operational')) return 'success'
-  return 'secondary'
-})
-
 function formatTemp(temp) {
-  if (temp === undefined || temp === null) return '--°C'
-  return `${Math.round(temp)}°C`
+  if (temp === undefined || temp === null) return '-- °C'
+  return `${Math.round(temp)} °C`
 }
 
 function formatTime(seconds) {
@@ -99,99 +71,160 @@ function formatTime(seconds) {
   const h = Math.floor(seconds / 3600)
   const m = Math.floor((seconds % 3600) / 60)
   const s = Math.floor(seconds % 60)
+  // Format MM:SS or HH:MM if > 1h
+  const pad = (n) => n.toString().padStart(2, '0')
   if (h > 0) {
-    return `${h}h ${m}m`
+    return `${h}:${pad(m)}:${pad(s)}` // Example format, adapt to screenshot preference
   }
-  return `${m}m ${s}s`
+  return `${pad(m)}:${pad(s)}`
 }
 </script>
 
 <style scoped>
-.status-card {
-  background: rgba(22, 33, 62, 0.6);
-  backdrop-filter: blur(10px);
-  border: 1px solid var(--surface-border);
-  border-radius: 16px;
+.status-panel {
+  background: var(--surface-card, #0f1028);
+  border: 1px solid rgba(99, 102, 241, 0.1);
+  border-radius: 14px;
+  padding: 0;
+  color: #fff;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
 }
 
-.card-header {
+.panel-header {
+  text-align: center;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.03);
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.panel-content {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1.25rem;
+  flex: 1;
+}
+
+.status-group {
+  display: flex;
+  flex-direction: column;
   gap: 0.5rem;
 }
 
-.card-header i {
-  color: var(--primary-color);
+.status-group label {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.5);
+  text-align: center;
 }
 
-.status-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.75rem 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+.file-box {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35rem;
+  cursor: default;
 }
 
-.label {
-  color: var(--text-color-secondary);
-  font-size: 0.875rem;
-}
-
-.value {
-  color: var(--text-color);
+.info-label {
+  font-size: 0.75rem;
   font-weight: 500;
-  max-width: 60%;
-  text-align: right;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  color: rgba(255, 255, 255, 0.45);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
   white-space: nowrap;
 }
 
-.progress-container {
-  width: 60%;
+.info-value {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: #fff;
 }
 
-.temperatures {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-  padding: 1rem 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+.file-name {
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: right;
 }
 
-.temp-item {
+.temp-label-group {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem;
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 8px;
-}
-
-.temp-item i {
-  font-size: 1.25rem;
-  color: #f97316;
-}
-
-.temp-label {
-  display: block;
+  line-height: 1.3;
   font-size: 0.75rem;
-  color: var(--text-color-secondary);
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.temp-box {
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.85rem 0.5rem;
 }
 
 .temp-value {
-  display: block;
-  font-weight: 600;
-  color: var(--text-color);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #fff;
 }
 
-.times {
-  padding-top: 0.75rem;
+.info-box {
+  background: rgba(255, 255, 255, 0.04);
+  color: #fff;
+  padding: 0.65rem 1rem;
+  border-radius: 10px;
+  font-weight: 500;
+  min-height: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  transition: border-color 0.2s;
 }
 
-.time-item {
+.info-box:hover {
+  border-color: rgba(99, 102, 241, 0.2);
+}
+
+.info-box.centered {
+  justify-content: center;
+}
+
+.temp-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.time-box {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.4rem;
+  padding: 0.75rem 1rem;
+}
+
+.time-row {
   display: flex;
   justify-content: space-between;
-  padding: 0.5rem 0;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.time-row span:last-child {
+  font-weight: 600;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
 }
 </style>

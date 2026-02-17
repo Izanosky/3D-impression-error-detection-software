@@ -1,10 +1,11 @@
 :root {
-  --primary-color: #6366f1;
-  --surface-ground: #1a1a2e;
-  --surface-card: #16213e;
-  --surface-border: #0f3460;
-  --text-color: #e4e4e7;
+  --primary-color: #6366f1; /* Indigo-500, similar to screenshot purple/blue */
+  --surface-ground: #020418; /* Very dark blue background */
+  --surface-card: #0f1028; /* Slightly lighter blue for cards */
+  --surface-border: #1e1e3f; /* Border color */
+  --text-color: #ffffff;
   --text-color-secondary: #a1a1aa;
+  --status-bg: #2d2d50; /* Background for status items */
 }
 
 * {

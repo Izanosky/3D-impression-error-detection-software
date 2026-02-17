@@ -1,41 +1,21 @@
 <template>
-  <Card class="camera-card">
-    <template #title>
-      <div class="card-header">
-        <i class="pi pi-camera"></i>
-        <span>Vista de Cámara</span>
-        <Tag v-if="detections.has_errors" 
-             :value="`${detections.total_detections} error(es)`" 
-             severity="danger" />
+  <div class="camera-wrapper">
+    <div class="camera-container">
+      <img v-if="snapshotUrl" :src="snapshotUrl" alt="Vista de impresora" class="camera-image"
+        @error="handleImageError" />
+      <div v-else class="camera-placeholder">
+        <span class="placeholder-text">Imagen de la cámara</span>
       </div>
-    </template>
-    <template #content>
-      <div class="camera-container">
-        <img v-if="snapshotUrl" 
-             :src="snapshotUrl" 
-             alt="Vista de impresora"
-             class="camera-image"
-             @error="handleImageError" />
-        <div v-else class="camera-placeholder">
-          <i class="pi pi-video"></i>
-          <p>Conectando a la cámara...</p>
-        </div>
-      </div>
-      
-      <!-- Detecciones -->
-      <div v-if="detections.has_errors" class="detections-info">
-        <Tag v-for="(info, className) in detections.classes" 
-             :key="className"
-             :value="`${className}: ${info.count}`"
-             severity="warning"
-             class="detection-tag" />
-      </div>
-    </template>
-  </Card>
+    </div>
+
+    <!-- Detections overlay or status -->
+    <div v-if="detections.has_errors" class="detections-overlay">
+      <Tag value="Error detectado" severity="danger" />
+    </div>
+  </div>
 </template>
 
 <script setup>
-import Card from 'primevue/card'
 import Tag from 'primevue/tag'
 
 defineProps({
@@ -51,35 +31,36 @@ defineProps({
 
 function handleImageError(e) {
   e.target.style.display = 'none'
+  // Optionally show placeholder
+  const container = e.target.parentElement
+  if (container) {
+    const placeholder = container.querySelector('.camera-placeholder')
+    if (placeholder) placeholder.style.display = 'flex'
+  }
 }
 </script>
 
 <style scoped>
-.camera-card {
-  background: rgba(22, 33, 62, 0.6);
-  backdrop-filter: blur(10px);
-  border: 1px solid var(--surface-border);
-  border-radius: 16px;
-  overflow: hidden;
-}
-
-.card-header {
+.camera-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
   display: flex;
+  justify-content: center;
   align-items: center;
-  gap: 0.5rem;
-}
-
-.card-header i {
-  color: var(--primary-color);
 }
 
 .camera-container {
   position: relative;
   width: 100%;
   aspect-ratio: 16/9;
-  background: #0a0a0f;
-  border-radius: 12px;
+  background: #000;
   overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
 }
 
 .camera-image {
@@ -90,32 +71,23 @@ function handleImageError(e) {
 
 .camera-placeholder {
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
+  width: 100%;
   height: 100%;
-  color: var(--text-color-secondary);
+  background: #000;
 }
 
-.camera-placeholder i {
-  font-size: 3rem;
-  margin-bottom: 1rem;
-  opacity: 0.5;
+.placeholder-text {
+  color: #a1a1aa;
+  font-size: 1.25rem;
+  font-weight: 400;
 }
 
-.detections-info {
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-  margin-top: 1rem;
-}
-
-.detection-tag {
-  animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
+.detections-overlay {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 10;
 }
 </style>

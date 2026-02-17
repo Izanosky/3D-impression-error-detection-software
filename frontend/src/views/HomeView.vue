@@ -16,28 +16,16 @@
           mediante inteligencia artificial, protegiendo tus impresiones y tu impresora.
         </p>
         <div class="hero-actions">
-          <Button 
-            label="Ir al Monitor" 
-            icon="pi pi-arrow-right" 
-            iconPos="right"
-            size="large"
-            @click="$router.push('/monitor')"
-            class="cta-btn"
-          />
-          <Button 
-            label="Saber más" 
-            icon="pi pi-info-circle" 
-            severity="secondary" 
-            outlined
-            size="large"
-            @click="$router.push('/about')"
-          />
+          <Button label="Ir al Monitor" icon="pi pi-arrow-right" iconPos="right" size="large"
+            @click="$router.push('/monitor')" class="cta-btn" />
+          <Button label="Saber más" icon="pi pi-info-circle" severity="secondary" outlined size="large"
+            @click="$router.push('/about')" />
         </div>
       </div>
       <div class="hero-visual">
         <div class="hero-glow"></div>
         <div class="hero-icon-container">
-          <i class="pi pi-box hero-icon"></i>
+          <img :src="logo" alt="PrintErr Logo" class="hero-icon" />
         </div>
       </div>
     </section>
@@ -75,6 +63,7 @@
 <script setup>
 import Button from 'primevue/button'
 import Card from 'primevue/card'
+import logo from '../assets/logo.png'
 
 const features = [
   {
@@ -164,6 +153,7 @@ const steps = [
 .gradient-text {
   background: linear-gradient(90deg, #6366f1, #a855f7, #ec4899);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
@@ -208,34 +198,50 @@ const steps = [
 }
 
 @keyframes glow-pulse {
-  0%, 100% { transform: scale(1); opacity: 0.6; }
-  50% { transform: scale(1.15); opacity: 1; }
+
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+
+  50% {
+    transform: scale(1.15);
+    opacity: 1;
+  }
 }
 
 .hero-icon-container {
-  width: 160px;
-  height: 160px;
+  width: 220px;
+  height: 220px;
   display: flex;
   align-items: center;
   justify-content: center;
   background: rgba(22, 33, 62, 0.7);
   backdrop-filter: blur(10px);
   border: 1px solid var(--surface-border);
-  border-radius: 32px;
+  border-radius: 40px;
   z-index: 1;
   animation: float 6s ease-in-out infinite;
 }
 
 @keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-12px); }
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-12px);
+  }
 }
 
 .hero-icon {
-  font-size: 4rem;
-  background: linear-gradient(135deg, #6366f1, #a855f7);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 1rem;
 }
 
 /* ── Features ── */

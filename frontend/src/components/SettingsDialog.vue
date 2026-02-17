@@ -100,20 +100,26 @@ async function testConnection() {
   message.value = ''
   
   try {
-    const response = await fetch(`${getFullUrl()}/api/status`, {
+    const response = await fetch(`${getFullUrl()}/`, {
       method: 'GET',
       mode: 'cors'
     })
     
     if (response.ok) {
-      message.value = '✓ Conexión exitosa con el backend'
-      messageSeverity.value = 'success'
+      const data = await response.json()
+      if (data.status === 'running') {
+        message.value = '✓ Conexión exitosa con el backend'
+        messageSeverity.value = 'success'
+      } else {
+        message.value = '✗ El servidor respondió pero no es el backend esperado'
+        messageSeverity.value = 'warn'
+      }
     } else {
-      message.value = '✗ El backend respondió con error'
+      message.value = '✗ El backend respondió con error (código ' + response.status + ')'
       messageSeverity.value = 'warn'
     }
   } catch (error) {
-    message.value = '✗ No se pudo conectar. Verifica la dirección.'
+    message.value = '✗ No se pudo conectar. Verifica que el backend esté ejecutándose y la dirección sea correcta.'
     messageSeverity.value = 'error'
   } finally {
     testing.value = false
