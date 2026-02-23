@@ -1,66 +1,17 @@
 # Configuración del sistema
 import os
-import json
-from pathlib import Path
+from dotenv import load_dotenv
 
-# Ruta del archivo de configuración persistente
-CONFIG_FILE = Path(__file__).parent.parent / "settings.json"
+# Cargar variables de entorno desde .env.back.template
+load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env.back.template"))
 
-# Valores por defecto
-DEFAULT_SETTINGS = {
-    "octoprint_url": "http://localhost:5000",
-    "octoprint_api_key": "CeclUduugORg1EYpcgEP-2b1UXRwzkXWUX5tAwqFCpI",
-    "roboflow_api_key": "PZCqeY4aWL1dSF0Npry5",
-    "confidence_threshold": 0.5
-}
+# OctoPrint (solo IP/URL, sin API key)
+OCTOPRINT_URL = os.getenv("OCTOPRINT_URL", "")
 
-
-def load_settings() -> dict:
-    """Carga la configuración desde el archivo JSON"""
-    if CONFIG_FILE.exists():
-        try:
-            with open(CONFIG_FILE, "r", encoding="utf-8") as f:
-                saved = json.load(f)
-                # Combinar con defaults para incluir nuevas opciones
-                return {**DEFAULT_SETTINGS, **saved}
-        except Exception:
-            pass
-    return DEFAULT_SETTINGS.copy()
-
-
-def save_settings(settings: dict) -> bool:
-    """Guarda la configuración en el archivo JSON"""
-    try:
-        with open(CONFIG_FILE, "w", encoding="utf-8") as f:
-            json.dump(settings, f, indent=2, ensure_ascii=False)
-        return True
-    except Exception:
-        return False
-
-
-def get_setting(key: str):
-    """Obtiene un valor de configuración"""
-    settings = load_settings()
-    return settings.get(key, DEFAULT_SETTINGS.get(key))
-
-
-# Roboflow (fijos)
+# Roboflow
 ROBOFLOW_API_URL = "https://serverless.roboflow.com"
 ROBOFLOW_MODEL_ID = "3d-printer-error-detection/5"
+ROBOFLOW_API_KEY = "PZCqeY4aWL1dSF0Npry5"
 
-# Propiedades dinámicas (se leen del archivo)
-@property
-def OCTOPRINT_URL():
-    return get_setting("octoprint_url")
-
-@property
-def OCTOPRINT_API_KEY():
-    return get_setting("octoprint_api_key")
-
-@property
-def ROBOFLOW_API_KEY():
-    return get_setting("roboflow_api_key")
-
-@property
-def CONFIDENCE_THRESHOLD():
-    return get_setting("confidence_threshold")
+# Detección
+CONFIDENCE_THRESHOLD = 0.5

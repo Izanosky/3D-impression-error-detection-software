@@ -1,19 +1,18 @@
 """
 Cliente para comunicación con OctoPrint API
 """
+import os
 import requests
-from app.config import get_setting
 
 
 class OctoPrintClient:
     def _get_url(self):
-        """Obtiene la URL de OctoPrint de la configuración"""
-        return get_setting("octoprint_url")
+        """Obtiene la URL de OctoPrint desde variables de entorno"""
+        return os.getenv("OCTOPRINT_URL", "")
     
     def _get_headers(self):
-        """Obtiene los headers con la API key actual"""
+        """Obtiene los headers para las peticiones"""
         return {
-            "X-Api-Key": get_setting("octoprint_api_key"),
             "Content-Type": "application/json"
         }
     
@@ -139,12 +138,10 @@ class OctoPrintClient:
     def upload_gcode(self, file_content: bytes, filename: str) -> dict:
         """Sube un archivo G-code a OctoPrint"""
         base_url = self._get_url()
-        api_key = get_setting("octoprint_api_key")
         
         try:
             response = requests.post(
                 f"{base_url}/api/files/local",
-                headers={"X-Api-Key": api_key},
                 files={"file": (filename, file_content, "application/octet-stream")},
                 data={"select": "true"},
                 timeout=30

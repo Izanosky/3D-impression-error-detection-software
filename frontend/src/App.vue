@@ -3,7 +3,7 @@
     <Toast />
     <ConfirmDialog />
     <!-- Global Settings Dialog -->
-    <SettingsDialog v-model="store.showSettings" :isFirstTime="store.isFirstTime" @saved="store.onSettingsSaved" />
+    <SettingsDialog v-model="store.showSettings" />
 
     <AppHeader />
 

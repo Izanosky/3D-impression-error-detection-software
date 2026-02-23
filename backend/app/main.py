@@ -9,12 +9,12 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, File, Response, UploadFile, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
 
 from app.octoprint_client import octoprint_client
 from app.roboflow_client import roboflow_client
 from app.image_processor import draw_detections, get_detection_summary
-from app.config import load_settings, save_settings
+from app.setup import keyMangement
+
 
 
 # Gestión de clientes WebSocket conectados
@@ -136,13 +136,6 @@ app.add_middleware(
 )
 
 
-class SettingsModel(BaseModel):
-    octoprint_url: str
-    octoprint_api_key: str
-    roboflow_api_key: str | None = None
-    confidence_threshold: float | None = None
-
-
 # ==================== WebSocket ====================
 
 @app.websocket("/ws")
@@ -207,38 +200,6 @@ async def websocket_endpoint(websocket: WebSocket):
 async def root():
     """Endpoint de bienvenida"""
     return {"message": "3D Printer Monitor API", "status": "running", "websocket": "/ws"}
-
-
-@app.get("/api/settings")
-async def get_settings():
-    """Obtiene la configuración actual"""
-    settings = load_settings()
-    if settings.get("octoprint_api_key"):
-        key = settings["octoprint_api_key"]
-        if len(key) > 8:
-            settings["octoprint_api_key_masked"] = key[:4] + "****" + key[-4:]
-        else:
-            settings["octoprint_api_key_masked"] = "****"
-    return settings
-
-
-@app.post("/api/settings")
-async def update_settings(new_settings: SettingsModel):
-    """Actualiza la configuración"""
-    current = load_settings()
-    current["octoprint_url"] = new_settings.octoprint_url
-    current["octoprint_api_key"] = new_settings.octoprint_api_key
-    
-    if new_settings.roboflow_api_key:
-        current["roboflow_api_key"] = new_settings.roboflow_api_key
-    if new_settings.confidence_threshold is not None:
-        current["confidence_threshold"] = new_settings.confidence_threshold
-    
-    success = save_settings(current)
-    return {
-        "success": success,
-        "message": "Configuración guardada" if success else "Error al guardar"
-    }
 
 
 @app.get("/api/status")
@@ -306,5 +267,11 @@ async def select_file(filename: str):
 
 
 if __name__ == "__main__":
+    import sys
     import uvicorn
+    
+    if not keyMangement.validate_configuration():
+        print("Configuración de OctoPrint no válida. Por favor corrige los errores e intenta de nuevo.")
+        sys.exit(1)
+    
     uvicorn.run(app, host="0.0.0.0", port=8000)

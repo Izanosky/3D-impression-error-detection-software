@@ -1,2 +1,61 @@
-Para acceder al entorno virtual, ejecuta setup_env.bat
-(Lo creará si es la primera vez, o lo activará si ya existe)
+================================================
+  AYUDA - Sistema de Monitorización 3D
+================================================
+
+== INSTALACIÓN ==
+
+  Windows:
+    Ejecuta setup_env.bat desde la carpeta raíz.
+    (O por separado: backend\install.bat y frontend\install.bat)
+
+  Linux / Raspberry Pi:
+    chmod +x setup_env.sh backend/install.sh frontend/install.sh
+    bash setup_env.sh
+    (O por separado: bash backend/install.sh y bash frontend/install.sh)
+
+== ENTORNO VIRTUAL (Backend) ==
+
+  Windows:
+    cd backend
+    .venv\Scripts\activate
+
+  Linux / Raspberry Pi:
+    cd backend
+    source .venv/bin/activate
+
+  NOTA: En Linux, la carpeta .venv es OCULTA (empieza por punto).
+  Usa "ls -a" para verla. Si "ls" no la muestra, sigue existiendo.
+  Puedes verificar con: test -d .venv && echo "EXISTE"
+
+== EJECUCIÓN ==
+
+  Terminal 1 - Backend:
+    cd backend
+    Windows:  .venv\Scripts\activate
+    Linux:    source .venv/bin/activate
+    uvicorn app.main:app --host 0.0.0.0 --port 8000
+
+  Terminal 2 - Frontend:
+    cd frontend
+    npm run dev
+
+== PROBLEMAS COMUNES (Linux / Raspberry Pi) ==
+
+  1. "python3.10: command not found"
+     → Instalar Python 3.10: sudo apt install python3.10 python3.10-venv
+
+  2. "No se pudo crear el entorno virtual"
+     → Falta el paquete venv: sudo apt install python3.10-venv
+
+  3. No veo la carpeta .venv
+     → Es oculta en Linux. Usa: ls -a
+     → O verifica que existe: test -d .venv && echo "EXISTE"
+     → Busca dónde se creó: find ~ -name ".venv" -type d
+
+  4. "Permission denied" al ejecutar .sh
+     → Dar permisos: chmod +x install.sh
+     → O ejecutar con: bash install.sh
+
+  5. npm no encontrado
+     → Instalar Node.js: sudo apt install nodejs npm
+     → O usar nvm: https://github.com/nvm-sh/nvm

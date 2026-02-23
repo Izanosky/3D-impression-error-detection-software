@@ -177,8 +177,15 @@ Usuario pulsa "Pausar":
 
 Desde la carpeta raíz del proyecto, ejecuta:
 
+**Windows:**
 ```bash
 setup_env.bat
+```
+
+**Linux / Raspberry Pi:**
+```bash
+chmod +x setup_env.sh backend/install.sh frontend/install.sh
+bash setup_env.sh
 ```
 
 Esto instalará tanto el backend como el frontend automáticamente.
@@ -190,7 +197,9 @@ Esto instalará tanto el backend como el frontend automáticamente.
 #### 🔧 Backend (Python + FastAPI)
 
 **Requisitos previos:**
-- [Python 3.10](https://www.python.org/downloads/) instalado (asegúrate de marcar "Add to PATH" durante la instalación)
+- [Python 3.10](https://www.python.org/downloads/) instalado
+  - **Windows:** Asegúrate de marcar "Add to PATH" durante la instalación
+  - **Linux / Raspberry Pi:** `sudo apt install python3.10 python3.10-venv`
 
 **Pasos:**
 
@@ -200,17 +209,37 @@ Esto instalará tanto el backend como el frontend automáticamente.
    ```
 
 2. Ejecuta el script de instalación:
+
+   **Windows:**
    ```bash
    install.bat
    ```
+
+   **Linux / Raspberry Pi:**
+   ```bash
+   chmod +x install.sh
+   bash install.sh
+   ```
+
    Esto creará un entorno virtual con Python 3.10 (`.venv`) e instalará todas las dependencias del archivo `requirements.txt`.
 
 3. **(Alternativa manual)** Si prefieres hacerlo paso a paso:
+
+   **Windows:**
    ```bash
    py -3.10 -m venv .venv
    .venv\Scripts\activate
    pip install -r requirements.txt
    ```
+
+   **Linux / Raspberry Pi:**
+   ```bash
+   python3.10 -m venv .venv
+   source .venv/bin/activate
+   pip install -r requirements.txt
+   ```
+
+> **⚠️ Nota Linux:** La carpeta `.venv` es **oculta** (empieza por punto). Usa `ls -a` para verla. Si no aparece con `ls` normal, no significa que no exista.
 
 ---
 
@@ -218,6 +247,7 @@ Esto instalará tanto el backend como el frontend automáticamente.
 
 **Requisitos previos:**
 - [Node.js 18+](https://nodejs.org/) instalado
+  - **Linux / Raspberry Pi:** `sudo apt install nodejs npm` o usa [nvm](https://github.com/nvm-sh/nvm)
 
 **Pasos:**
 
@@ -227,9 +257,18 @@ Esto instalará tanto el backend como el frontend automáticamente.
    ```
 
 2. Ejecuta el script de instalación:
+
+   **Windows:**
    ```bash
    install.bat
    ```
+
+   **Linux / Raspberry Pi:**
+   ```bash
+   chmod +x install.sh
+   bash install.sh
+   ```
+
    Esto ejecutará `npm install` y descargará todas las dependencias definidas en `package.json`.
 
 3. **(Alternativa manual)** Si prefieres hacerlo directamente:
@@ -245,9 +284,17 @@ Necesitas **dos terminales** abiertas simultáneamente:
 
 ### Terminal 1 — Backend
 
+**Windows:**
 ```bash
 cd backend
 .venv\Scripts\activate
+uvicorn app.main:app --host 0.0.0.0 --port 8000
+```
+
+**Linux / Raspberry Pi:**
+```bash
+cd backend
+source .venv/bin/activate
 uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 
@@ -283,7 +330,8 @@ TFG/
 │   │   └── image_processor.py   # Dibujado bounding boxes
 │   ├── settings.json            # Configuración guardada
 │   ├── requirements.txt
-│   └── install.bat
+│   ├── install.bat              # Instalador Windows
+│   └── install.sh               # Instalador Linux/Raspberry Pi
 ├── frontend/
 │   ├── src/
 │   │   ├── App.vue              # Shell principal (header + router-view)
@@ -304,7 +352,23 @@ TFG/
 │   │       ├── ControlPanel.vue  # Botones control
 │   │       └── SettingsDialog.vue # Configuración
 │   ├── package.json
-│   └── install.bat
-├── setup_env.bat                # Instalación completa
+│   ├── install.bat              # Instalador Windows
+│   └── install.sh               # Instalador Linux/Raspberry Pi
+├── setup_env.bat                # Instalación completa (Windows)
+├── setup_env.sh                 # Instalación completa (Linux/Raspberry Pi)
 └── README.md
 ```
+
+---
+
+## ❓ Problemas Comunes (Linux / Raspberry Pi)
+
+| Problema | Solución |
+|----------|----------|
+| `python3.10: command not found` | `sudo apt install python3.10 python3.10-venv` |
+| No se crea el entorno virtual | Instalar paquete venv: `sudo apt install python3.10-venv` |
+| No veo la carpeta `.venv` | Es oculta en Linux (empieza por `.`). Usa `ls -a` para verla |
+| Quiero verificar que `.venv` existe | `test -d .venv && echo "EXISTE"` |
+| Quiero buscar dónde se creó `.venv` | `find ~ -name ".venv" -type d` |
+| `Permission denied` al ejecutar `.sh` | `chmod +x install.sh` o ejecutar con `bash install.sh` |
+| `npm: command not found` | `sudo apt install nodejs npm` o usa [nvm](https://github.com/nvm-sh/nvm) |

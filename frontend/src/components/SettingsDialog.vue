@@ -2,26 +2,20 @@
   <Dialog 
     v-model:visible="visible" 
     :modal="true" 
-    :closable="canClose"
-    :header="isFirstTime ? 'Configuración Inicial' : 'Configuración'"
-    :style="{ width: '450px' }"
+    :closable="true"
+    header="Configuración"
+    :style="{ width: '400px' }"
   >
     <div class="settings-form">
-      <p v-if="isFirstTime" class="intro-text">
-        <i class="pi pi-info-circle"></i>
-        Introduce la dirección IP del dispositivo donde se ejecuta el backend.
-      </p>
-
-      <!-- IP del Backend -->
-      <div class="field">
-        <label for="backend-url">Dirección del Backend</label>
+      <!-- Nombre del usuario -->
+      <div v-if="userStore.currentUser" class="field">
+        <label for="display-name">Nombre de usuario</label>
         <InputText 
-          id="backend-url"
-          v-model="backendUrl" 
-          placeholder="192.168.1.100:8000"
+          id="display-name"
+          v-model="displayName" 
+          placeholder="Tu nombre"
           class="w-full"
         />
-        <small>IP y puerto del dispositivo con el backend (ej: 192.168.1.100:8000)</small>
       </div>
 
       <!-- Mensaje de estado -->
@@ -32,17 +26,11 @@
 
     <template #footer>
       <Button 
-        label="Probar conexión" 
-        icon="pi pi-wifi" 
-        severity="secondary"
-        @click="testConnection"
-        :loading="testing"
-      />
-      <Button 
         label="Guardar" 
         icon="pi pi-check" 
         @click="saveSettings"
-        :disabled="!backendUrl"
+        :loading="saving"
+        :disabled="!displayName.trim()"
       />
     </template>
   </Dialog>
@@ -54,89 +42,58 @@ import Dialog from 'primevue/dialog'
 import InputText from 'primevue/inputtext'
 import Button from 'primevue/button'
 import Message from 'primevue/message'
+import { useUserStore } from '../stores/user'
+import { updateUser } from '../services/usersService'
 
 const props = defineProps({
-  modelValue: Boolean,
-  isFirstTime: {
-    type: Boolean,
-    default: false
-  }
+  modelValue: Boolean
 })
 
 const emit = defineEmits(['update:modelValue', 'saved'])
+
+const userStore = useUserStore()
 
 const visible = computed({
   get: () => props.modelValue,
   set: (val) => emit('update:modelValue', val)
 })
 
-const canClose = computed(() => !props.isFirstTime)
-
-const backendUrl = ref('')
-const testing = ref(false)
+const displayName = ref('')
+const saving = ref(false)
 const message = ref('')
 const messageSeverity = ref('info')
 
-// Cargar URL guardada
-const STORAGE_KEY = 'printer_monitor_backend_url'
+async function saveSettings() {
+  const newName = displayName.value.trim()
+  if (!userStore.currentUser || !newName) return
 
-function loadSavedUrl() {
-  const saved = localStorage.getItem(STORAGE_KEY)
-  if (saved) {
-    backendUrl.value = saved
+  if (newName === userStore.userName) {
+    visible.value = false
+    return
   }
-}
 
-function getFullUrl() {
-  let url = backendUrl.value.trim()
-  if (!url.startsWith('http://') && !url.startsWith('https://')) {
-    url = 'http://' + url
-  }
-  return url
-}
-
-async function testConnection() {
-  testing.value = true
+  saving.value = true
   message.value = ''
-  
+
   try {
-    const response = await fetch(`${getFullUrl()}/`, {
-      method: 'GET',
-      mode: 'cors'
-    })
-    
-    if (response.ok) {
-      const data = await response.json()
-      if (data.status === 'running') {
-        message.value = '✓ Conexión exitosa con el backend'
-        messageSeverity.value = 'success'
-      } else {
-        message.value = '✗ El servidor respondió pero no es el backend esperado'
-        messageSeverity.value = 'warn'
-      }
-    } else {
-      message.value = '✗ El backend respondió con error (código ' + response.status + ')'
-      messageSeverity.value = 'warn'
-    }
-  } catch (error) {
-    message.value = '✗ No se pudo conectar. Verifica que el backend esté ejecutándose y la dirección sea correcta.'
+    await updateUser(userStore.currentUser.uid, { displayName: newName })
+    userStore.userName = newName
+    message.value = '✓ Nombre actualizado'
+    messageSeverity.value = 'success'
+    setTimeout(() => { visible.value = false }, 600)
+  } catch (err) {
+    console.error('Error updating name:', err)
+    message.value = '✗ Error al actualizar el nombre'
     messageSeverity.value = 'error'
   } finally {
-    testing.value = false
+    saving.value = false
   }
 }
 
-function saveSettings() {
-  const url = getFullUrl()
-  localStorage.setItem(STORAGE_KEY, backendUrl.value.trim())
-  emit('saved', url)
-  visible.value = false
-}
-
-// Cargar al montar
+// Cargar datos al abrir
 watch(() => props.modelValue, (newVal) => {
   if (newVal) {
-    loadSavedUrl()
+    displayName.value = userStore.userName || ''
     message.value = ''
   }
 }, { immediate: true })
@@ -149,22 +106,6 @@ watch(() => props.modelValue, (newVal) => {
   gap: 1.25rem;
 }
 
-.intro-text {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.5rem;
-  padding: 1rem;
-  background: rgba(99, 102, 241, 0.1);
-  border-radius: 8px;
-  color: var(--text-color-secondary);
-  margin: 0;
-}
-
-.intro-text i {
-  color: var(--primary-color);
-  margin-top: 2px;
-}
-
 .field {
   display: flex;
   flex-direction: column;
@@ -174,11 +115,6 @@ watch(() => props.modelValue, (newVal) => {
 .field label {
   font-weight: 500;
   color: var(--text-color);
-}
-
-.field small {
-  color: var(--text-color-secondary);
-  font-size: 0.75rem;
 }
 
 .w-full {

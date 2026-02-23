@@ -3,7 +3,7 @@ Procesamiento de imágenes - Dibujado de bounding boxes
 """
 from PIL import Image, ImageDraw, ImageFont
 from io import BytesIO
-from app.config import get_setting
+from app.config import CONFIDENCE_THRESHOLD
 
 
 def draw_detections(image_bytes: bytes, predictions: list) -> bytes:
@@ -31,7 +31,7 @@ def draw_detections(image_bytes: bytes, predictions: list) -> bytes:
         confidence = pred.get("confidence", 0)
         
         # Filtrar por umbral de confianza
-        if confidence < get_setting("confidence_threshold"):
+        if confidence < CONFIDENCE_THRESHOLD:
             continue
         
         # Obtener coordenadas (x, y son el centro)
@@ -78,7 +78,7 @@ def get_detection_summary(predictions: list) -> dict:
     Returns:
         Resumen con conteo por clase y confianza promedio
     """
-    filtered = [p for p in predictions if p.get("confidence", 0) >= get_setting("confidence_threshold")]
+    filtered = [p for p in predictions if p.get("confidence", 0) >= CONFIDENCE_THRESHOLD]
     
     if not filtered:
         return {
