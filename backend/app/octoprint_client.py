@@ -8,11 +8,12 @@ import requests
 class OctoPrintClient:
     def _get_url(self):
         """Obtiene la URL de OctoPrint desde variables de entorno"""
-        return os.getenv("OCTOPRINT_URL", "")
+        return os.getenv("OCTOPRINT_URL", "http://localhost")
     
     def _get_headers(self):
-        """Obtiene los headers para las peticiones"""
+        """Obtiene los headers con la API key para las peticiones"""
         return {
+            "X-Api-Key": os.getenv("OCTOPRINT_API_KEY", ""),
             "Content-Type": "application/json"
         }
     
@@ -138,10 +139,12 @@ class OctoPrintClient:
     def upload_gcode(self, file_content: bytes, filename: str) -> dict:
         """Sube un archivo G-code a OctoPrint"""
         base_url = self._get_url()
+        api_key = os.getenv("OCTOPRINT_API_KEY", "")
         
         try:
             response = requests.post(
                 f"{base_url}/api/files/local",
+                headers={"X-Api-Key": api_key},
                 files={"file": (filename, file_content, "application/octet-stream")},
                 data={"select": "true"},
                 timeout=30

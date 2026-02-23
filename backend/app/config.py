@@ -5,8 +5,9 @@ from dotenv import load_dotenv
 # Cargar variables de entorno desde .env.back.template
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env.back.template"))
 
-# OctoPrint (solo IP/URL, sin API key)
-OCTOPRINT_URL = os.getenv("OCTOPRINT_URL", "")
+# OctoPrint
+OCTOPRINT_URL = os.getenv("OCTOPRINT_URL", "http://localhost")
+OCTOPRINT_API_KEY = os.getenv("OCTOPRINT_API_KEY", "")
 
 # Roboflow
 ROBOFLOW_API_URL = "https://serverless.roboflow.com"
