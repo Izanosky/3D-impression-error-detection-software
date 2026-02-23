@@ -1,7 +1,6 @@
 fastapi
 uvicorn[standard]
 requests
-inference-sdk
 pillow
 python-multipart
 websockets
