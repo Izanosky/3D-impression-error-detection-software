@@ -102,7 +102,7 @@ async def broadcast_updates():
             except Exception as e:
                 print(f"Error en broadcast: {e}")
         
-        await asyncio.sleep(3)
+        await asyncio.sleep(1)
 
 
 # Lifecycle para iniciar/parar tarea de broadcast
@@ -117,6 +117,8 @@ async def lifespan(app: FastAPI):
         await task
     except asyncio.CancelledError:
         pass
+    # Parar contenedor de inferencia al apagar el backend
+    stop_inference_server()
 
 
 app = FastAPI(
@@ -266,6 +268,87 @@ async def select_file(filename: str):
     }
 
 
+def stop_inference_server():
+    """Para el contenedor Docker del servidor de inferencia"""
+    import subprocess
+    
+    CONTAINER_NAME = "roboflow-inference-server"
+    try:
+        print("[Inference] Deteniendo servidor de inferencia...")
+        subprocess.run(
+            ["docker", "stop", CONTAINER_NAME],
+            capture_output=True, timeout=15
+        )
+        print("[Inference] Servidor detenido.")
+    except Exception as e:
+        print(f"[Inference] Error al detener servidor: {e}")
+
+
+def ensure_inference_server():
+    """Arranca el servidor de inferencia de Roboflow si no está corriendo"""
+    import subprocess
+    import time
+    
+    CONTAINER_NAME = "roboflow-inference-server"
+    
+    # Comprobar si el contenedor ya existe y está corriendo
+    try:
+        result = subprocess.run(
+            ["docker", "ps", "--filter", f"name={CONTAINER_NAME}", "--format", "{{.Names}}"],
+            capture_output=True, text=True, timeout=5
+        )
+        if CONTAINER_NAME in result.stdout:
+            print(f"[Inference] Servidor ya corriendo.")
+            return True
+    except Exception:
+        pass
+    
+    # Comprobar si existe parado y arrancarlo
+    try:
+        result = subprocess.run(
+            ["docker", "ps", "-a", "--filter", f"name={CONTAINER_NAME}", "--format", "{{.Names}}"],
+            capture_output=True, text=True, timeout=5
+        )
+        if CONTAINER_NAME in result.stdout:
+            print(f"[Inference] Contenedor existe pero parado. Arrancando...")
+            subprocess.run(["docker", "start", CONTAINER_NAME], capture_output=True, timeout=10)
+        else:
+            # Crear y arrancar el contenedor
+            print(f"[Inference] Iniciando servidor de inferencia...")
+            subprocess.Popen(
+                [
+                    "docker", "run", "-d",
+                    "--name", CONTAINER_NAME,
+                    "--restart", "unless-stopped",
+                    "-p", "9001:9001",
+                    "roboflow/roboflow-inference-server-cpu:latest"
+                ],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL
+            )
+    except FileNotFoundError:
+        print("[Inference] ERROR: Docker no está instalado. Ejecuta install.sh primero.")
+        return False
+    except Exception as e:
+        print(f"[Inference] ERROR al arrancar servidor: {e}")
+        return False
+    
+    # Esperar a que el servidor esté listo
+    print("[Inference] Esperando a que el servidor esté listo...")
+    for i in range(30):
+        try:
+            resp = requests.get("http://localhost:9001/info", timeout=2)
+            if resp.status_code == 200:
+                print("[Inference] Servidor listo.")
+                return True
+        except Exception:
+            pass
+        time.sleep(2)
+    
+    print("[Inference] AVISO: Servidor no responde aún. Puede que tarde más en arrancar.")
+    return True
+
+
 if __name__ == "__main__":
     import sys
     import uvicorn
@@ -273,5 +356,8 @@ if __name__ == "__main__":
     if not keyMangement.validate_configuration():
         print("Configuración de OctoPrint no válida. Por favor corrige los errores e intenta de nuevo.")
         sys.exit(1)
+    
+    # Arrancar servidor de inferencia automáticamente
+    ensure_inference_server()
     
     uvicorn.run(app, host="0.0.0.0", port=8000)

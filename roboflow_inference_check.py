@@ -5,6 +5,8 @@ from torchvision.io import read_image
 from torchvision.utils import draw_bounding_boxes
 from torchvision.transforms.functional import to_pil_image
 import os
+import sys
+import time
 
 # Configuración del cliente
 CLIENT = InferenceHTTPClient(
@@ -12,23 +14,29 @@ CLIENT = InferenceHTTPClient(
     api_key="PZCqeY4aWL1dSF0Npry5"
 )
 
-# Imagen a analizar
-image_path = r"C:\Users\izanj\OneDrive\Imágenes\Capturas de pantalla\Captura de pantalla 2026-02-10 124930.png"
+# Imagen a analizar: argumento de línea de comandos o ruta por defecto
+if len(sys.argv) > 1:
+    image_path = sys.argv[1]
+else:
+    image_path = r"C:\Users\izanj\OneDrive\Imágenes\Capturas de pantalla\Captura de pantalla 2026-02-10 124930.png"
 
 if not os.path.exists(image_path):
     print(f"ERROR: No se encontró la imagen en: {image_path}")
     exit(1)
 
 print(f"Usando imagen: {image_path}")
-print(f"Iniciando inferencia con el modelo '3d-printer-error-detection/5'...")
+print(f"Modelo: 3d-printer-error-detection/5")
+print(f"Método: API remota (serverless.roboflow.com)")
+print()
 
 try:
-    # Realizar la inferencia
+    # Realizar la inferencia con medición de tiempo
+    print("Ejecutando inferencia remota...")
+    t0 = time.perf_counter()
     result = CLIENT.infer(image_path, model_id="3d-printer-error-detection/5")
-
-    # Mostrar el resultado raw
-    print("\nResultado de la inferencia:")
-    print(result)
+    t_infer = time.perf_counter() - t0
+    print(f"Inferencia completada en {t_infer:.3f}s")
+    print()
 
     # Dibujar bounding boxes sobre la imagen
     predictions = result.get("predictions", [])
@@ -98,6 +106,13 @@ try:
         result_img.show()
     else:
         print("No se detectaron errores en la imagen.")
+
+    # ── Resumen de tiempos ─────────────────────────────────────
+    print()
+    print("=== Resumen (API remota) ===")
+    print(f"  Inferencia (incluye subida + red + respuesta): {t_infer:.3f}s")
+    print()
+    print("Compara con test_inference_local.py para ver la diferencia de tiempos.")
 
 except Exception as e:
     print(f"\nError durante la inferencia: {e}")

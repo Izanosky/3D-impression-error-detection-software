@@ -1,6 +1,6 @@
 """
-Cliente para comunicación con Roboflow API
-Usa llamadas HTTP directas para evitar dependencias pesadas (inference-sdk)
+Cliente para detección de errores con servidor de inferencia Roboflow local
+El servidor corre en localhost:9001 via Docker
 """
 import base64
 import requests
@@ -14,8 +14,8 @@ class RoboflowClient:
         self.model_id = ROBOFLOW_MODEL_ID
     
     def _build_url(self) -> str:
-        """Construye la URL del endpoint de inferencia"""
-        return f"{self.api_url}/{self.model_id}"
+        """Construye la URL del endpoint de inferencia local"""
+        return f"{self.api_url}/infer/object_detection"
     
     def detect_errors(self, image_path: str) -> dict:
         """
@@ -39,7 +39,7 @@ class RoboflowClient:
     
     def detect_errors_from_bytes(self, image_bytes: bytes) -> dict:
         """
-        Detecta errores desde bytes de imagen
+        Detecta errores desde bytes de imagen usando el servidor local
         
         Args:
             image_bytes: Bytes de la imagen
@@ -51,10 +51,13 @@ class RoboflowClient:
             # Codificar imagen en base64
             image_b64 = base64.b64encode(image_bytes).decode("utf-8")
             
-            # Llamada HTTP directa a la API de Roboflow
+            # Llamada al servidor de inferencia local
             response = requests.post(
                 self._build_url(),
-                params={"api_key": self.api_key},
+                params={
+                    "api_key": self.api_key,
+                    "model_id": self.model_id
+                },
                 data=image_b64,
                 headers={"Content-Type": "application/x-www-form-urlencoded"},
                 timeout=30
@@ -64,9 +67,14 @@ class RoboflowClient:
                 return response.json()
             else:
                 return {
-                    "error": f"Roboflow API error: {response.status_code} - {response.text[:200]}",
+                    "error": f"Inference server error: {response.status_code} - {response.text[:200]}",
                     "predictions": []
                 }
+        except requests.ConnectionError:
+            return {
+                "error": "Servidor de inferencia no disponible. Ejecuta: inference server start",
+                "predictions": []
+            }
         except Exception as e:
             return {
                 "error": str(e),
