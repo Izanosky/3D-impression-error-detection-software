@@ -24,9 +24,19 @@
            Let's hide it for now if strict adherence to screenshot, or keep it if logically needed. 
            I'll keep it but visually compatible. -->
 
+      <!-- Upload Button -->
+      <div class="control-group">
+        <label>Subir archivo:</label>
+        <Button :label="uploading ? 'Subiendo...' : 'Subir archivo'"
+          :icon="uploading ? 'pi pi-spin pi-spinner' : 'pi pi-upload'"
+          class="action-btn upload-btn"
+          :disabled="isPrinting || isPaused || uploading"
+          @click="fileInput?.click()" />
+      </div>
+
       <!-- Controls -->
       <div class="action-buttons">
-        <Button v-if="!isPrinting && !isPaused" :label="uploading ? 'Subiendo...' : 'Iniciar Impresión'"
+        <Button v-if="!isPrinting && !isPaused" label="Iniciar Impresión"
           icon="pi pi-play" class="action-btn start-btn" :disabled="!hasFile || uploading" @click="$emit('start')" />
 
         <Button v-else-if="isPrinting && !isPaused" label="Pausar Impresión" icon="pi pi-pause"
@@ -214,6 +224,21 @@ function onFileChange(event) {
 }
 
 .cancel-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.upload-btn {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+.upload-btn:hover:not(:disabled) {
+  background: rgba(16, 185, 129, 0.25);
+}
+
+.upload-btn:disabled {
   opacity: 0.35;
   cursor: not-allowed;
 }

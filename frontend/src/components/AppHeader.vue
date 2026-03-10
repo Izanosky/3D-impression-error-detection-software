@@ -29,6 +29,10 @@
           <i class="pi pi-desktop nav-icon"></i>
           <span>Monitorización</span>
         </router-link>
+        <router-link to="/timelapse" class="nav-link" active-class="nav-link--active">
+          <i class="pi pi-video nav-icon"></i>
+          <span>Biblioteca</span>
+        </router-link>
       </nav>
 
       <!-- Desktop Auth (Right) -->
@@ -68,6 +72,9 @@
         </router-link>
         <router-link to="/monitor" class="mobile-link" @click="closeMenu">
           <i class="pi pi-desktop"></i> Monitorización
+        </router-link>
+        <router-link to="/timelapse" class="mobile-link" @click="closeMenu">
+          <i class="pi pi-video"></i> Timelapses
         </router-link>
 
         <div class="mobile-divider"></div>

@@ -216,6 +216,72 @@ class OctoPrintClient:
             print(f"[OctoPrint] select_file error: {e}")
             return False
 
+    # ── Timelapse ──
+
+    def list_timelapses(self) -> list:
+        """Lista los timelapses disponibles en OctoPrint"""
+        base_url = self._get_url()
+        headers = self._get_headers()
+
+        try:
+            response = requests.get(
+                f"{base_url}/api/timelapse",
+                headers=headers,
+                timeout=10
+            )
+            if response.status_code == 200:
+                data = response.json()
+                files = data.get("files", [])
+                result = []
+                for f in files:
+                    result.append({
+                        "name": f.get("name", ""),
+                        "size": f.get("bytes", f.get("size", 0)),
+                        "date": f.get("date", ""),
+                        "url": f.get("url", ""),
+                        "thumbnail": f.get("thumbnail", ""),
+                    })
+                return result
+            return []
+        except Exception as e:
+            print(f"[OctoPrint] list_timelapses error: {e}")
+            return []
+
+    def download_timelapse(self, filename: str) -> bytes | None:
+        """Descarga un timelapse de OctoPrint"""
+        base_url = self._get_url()
+        headers = self._get_headers()
+
+        try:
+            response = requests.get(
+                f"{base_url}/downloads/timelapse/{filename}",
+                headers=headers,
+                timeout=60,
+                stream=True
+            )
+            if response.status_code == 200:
+                return response.content
+            return None
+        except Exception as e:
+            print(f"[OctoPrint] download_timelapse error: {e}")
+            return None
+
+    def delete_timelapse(self, filename: str) -> bool:
+        """Elimina un timelapse de OctoPrint"""
+        base_url = self._get_url()
+        headers = self._get_headers()
+
+        try:
+            response = requests.delete(
+                f"{base_url}/api/timelapse/{filename}",
+                headers=headers,
+                timeout=10
+            )
+            return response.status_code == 204
+        except Exception as e:
+            print(f"[OctoPrint] delete_timelapse error: {e}")
+            return False
+
 
 # Instancia global del cliente
 octoprint_client = OctoPrintClient()

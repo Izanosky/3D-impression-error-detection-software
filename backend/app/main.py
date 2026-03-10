@@ -268,6 +268,47 @@ async def select_file(filename: str):
     }
 
 
+# ==================== Timelapse Endpoints ====================
+
+@app.get("/api/timelapse")
+async def list_timelapses():
+    """Lista los timelapses disponibles en OctoPrint"""
+    loop = asyncio.get_event_loop()
+    timelapses = await loop.run_in_executor(
+        None, octoprint_client.list_timelapses
+    )
+    return {"files": timelapses}
+
+
+@app.get("/api/timelapse/download/{filename}")
+async def download_timelapse(filename: str):
+    """Descarga un timelapse de OctoPrint"""
+    loop = asyncio.get_event_loop()
+    content = await loop.run_in_executor(
+        None, octoprint_client.download_timelapse, filename
+    )
+    if content is None:
+        return {"error": "Timelapse no encontrado"}
+    return Response(
+        content=content,
+        media_type="video/mp4",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+    )
+
+
+@app.delete("/api/timelapse/{filename}")
+async def delete_timelapse(filename: str):
+    """Elimina un timelapse de OctoPrint"""
+    loop = asyncio.get_event_loop()
+    success = await loop.run_in_executor(
+        None, octoprint_client.delete_timelapse, filename
+    )
+    return {
+        "success": success,
+        "message": f"Timelapse '{filename}' eliminado" if success else "Error al eliminar timelapse"
+    }
+
+
 def stop_inference_server():
     """Para el contenedor Docker del servidor de inferencia"""
     import subprocess

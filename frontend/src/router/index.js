@@ -19,6 +19,12 @@ const routes = [
         component: () => import('../views/AboutView.vue')
     },
     {
+        path: '/timelapse',
+        name: 'timelapse',
+        component: () => import('../views/TimelapseView.vue'),
+        meta: { requiresAuth: true }
+    },
+    {
         path: '/login',
         name: 'login',
         component: () => import('../views/LoginView.vue')
