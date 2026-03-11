@@ -43,6 +43,10 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
+# Instalar dependencias del sistema necesarias para compilar scipy (armv7l / Raspberry Pi)
+echo "Instalando dependencias del sistema (gfortran, libopenblas-dev)..."
+sudo apt install -y gfortran libopenblas-dev 2>/dev/null || echo "AVISO: No se pudieron instalar dependencias del sistema. Si la instalación falla, ejecuta: sudo apt install gfortran libopenblas-dev"
+
 # Actualizar pip
 echo "Actualizando pip..."
 python -m pip install --upgrade pip -q

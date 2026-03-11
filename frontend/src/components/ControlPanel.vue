@@ -211,6 +211,7 @@ function onFileChange(event) {
 .start-btn:hover,
 .pause-btn:hover {
   background: #4f46e5;
+  transform: none !important;
 }
 
 .cancel-btn {
@@ -221,6 +222,7 @@ function onFileChange(event) {
 
 .cancel-btn:hover {
   background: rgba(239, 68, 68, 0.2);
+  transform: none !important;
 }
 
 .cancel-btn:disabled {
@@ -236,6 +238,7 @@ function onFileChange(event) {
 
 .upload-btn:hover:not(:disabled) {
   background: rgba(16, 185, 129, 0.25);
+  transform: none !important;
 }
 
 .upload-btn:disabled {

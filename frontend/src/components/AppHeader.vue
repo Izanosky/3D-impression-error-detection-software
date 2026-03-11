@@ -102,7 +102,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useUserStore } from '../stores/user'
 import { usePrinterStore } from '../stores/printer'
 import { signOut } from '../services/authService'
@@ -114,6 +114,21 @@ const printerStore = usePrinterStore()
 const router = useRouter()
 
 const isMenuOpen = ref(false)
+
+// Close mobile menu when resizing back to desktop
+function handleResize() {
+  if (window.innerWidth > 1024 && isMenuOpen.value) {
+    isMenuOpen.value = false
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('resize', handleResize)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', handleResize)
+})
 
 const connectionTooltip = computed(() => {
   switch (printerStore.connectionStatus) {
