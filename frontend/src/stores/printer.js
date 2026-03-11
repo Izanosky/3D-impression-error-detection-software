@@ -1,7 +1,8 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useUserStore } from './user'
 import { updateUser, getUserByUid } from '../services/usersService'
+import { uploadTimelapseBlob } from '../services/timelapseService'
 
 export const usePrinterStore = defineStore('printer', () => {
     // ── State ──
@@ -30,6 +31,8 @@ export const usePrinterStore = defineStore('printer', () => {
     })
 
     const snapshotUrl = ref('')
+
+    const autoCancelledMessage = ref('')
 
     // ── Getters ──
     const isPrinting = computed(() =>
@@ -87,6 +90,12 @@ export const usePrinterStore = defineStore('printer', () => {
                     if (message.data.snapshot) {
                         snapshotUrl.value = message.data.snapshot
                     }
+                    if (message.data.auto_cancelled) {
+                        autoCancelledMessage.value = 'Impresión cancelada automáticamente por detección de errores.'
+                    }
+                } else if (message.type === 'timelapse_ready') {
+                    console.log('[Timelapse] Nuevos timelapses disponibles:', message.files)
+                    _autoUploadTimelapses(message.files)
                 } else if (message.type === 'command_result') {
                     console.log(`Comando ${message.action}: ${message.success ? 'OK' : 'Error'}`)
                 }
@@ -195,6 +204,33 @@ export const usePrinterStore = defineStore('printer', () => {
         await fetchFiles()
     }
 
+    function clearAutoCancelledMessage() {
+        autoCancelledMessage.value = ''
+    }
+
+    async function _autoUploadTimelapses(files) {
+        if (!backendUrl.value || !files || files.length === 0) return
+
+        for (const f of files) {
+            try {
+                console.log(`[Timelapse] Descargando ${f.name}...`)
+                const response = await fetch(
+                    `http://${backendUrl.value}/api/timelapse/download/${encodeURIComponent(f.name)}`
+                )
+                if (!response.ok) {
+                    console.error(`[Timelapse] Error descargando ${f.name}: HTTP ${response.status}`)
+                    continue
+                }
+                const blob = await response.blob()
+                console.log(`[Timelapse] Subiendo ${f.name} a Firebase...`)
+                await uploadTimelapseBlob(blob, f.name)
+                console.log(`[Timelapse] ${f.name} subido correctamente`)
+            } catch (e) {
+                console.error(`[Timelapse] Error procesando ${f.name}:`, e)
+            }
+        }
+    }
+
     function onSettingsSaved(url) {
         backendUrl.value = url.replace(/^https?:\/\//, '')
         isFirstTime.value = false
@@ -217,22 +253,20 @@ export const usePrinterStore = defineStore('printer', () => {
 
     // Sync printer IP from user profile on login (without auto-connecting)
     const userStore = useUserStore()
-    import('vue').then(({ watch }) => {
-        watch(() => userStore.currentUser, async (user) => {
-            if (user) {
-                try {
-                    const userData = await getUserByUid(user.uid)
-                    if (userData && userData.printerIp) {
-                        console.log('Syncing printer IP from profile:', userData.printerIp)
-                        backendUrl.value = userData.printerIp
-                        localStorage.setItem(STORAGE_KEY, backendUrl.value)
-                    }
-                } catch (err) {
-                    console.error('Error fetching user printer IP:', err)
+    watch(() => userStore.currentUser, async (user) => {
+        if (user) {
+            try {
+                const userData = await getUserByUid(user.uid)
+                if (userData && userData.printerIp) {
+                    console.log('Syncing printer IP from profile:', userData.printerIp)
+                    backendUrl.value = userData.printerIp
+                    localStorage.setItem(STORAGE_KEY, backendUrl.value)
                 }
+            } catch (err) {
+                console.error('Error fetching user printer IP:', err)
             }
-        }, { immediate: true })
-    })
+        }
+    }, { immediate: true })
 
     return {
         // State
@@ -245,6 +279,7 @@ export const usePrinterStore = defineStore('printer', () => {
         status,
         detections,
         snapshotUrl,
+        autoCancelledMessage,
         // Getters
         isPrinting,
         isPaused,
@@ -263,6 +298,7 @@ export const usePrinterStore = defineStore('printer', () => {
         fetchFiles,
         selectFile,
         onSettingsSaved,
-        init
+        init,
+        clearAutoCancelledMessage
     }
 })

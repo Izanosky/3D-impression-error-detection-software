@@ -63,6 +63,7 @@
         </div>
       </div>
     </main>
+    <Toast />
   </div>
 </template>
 
@@ -71,10 +72,13 @@ import { ref, computed, onMounted, watch } from 'vue'
 import CameraView from '../components/CameraView.vue'
 import PrinterStatus from '../components/PrinterStatus.vue'
 import ControlPanel from '../components/ControlPanel.vue'
+import Toast from 'primevue/toast'
+import { useToast } from 'primevue/usetoast'
 import { usePrinterStore } from '../stores/printer'
 
 const store = usePrinterStore()
 const ipAddress = ref('')
+const toast = useToast()
 
 onMounted(() => {
   // Sync IP from store
@@ -84,6 +88,20 @@ onMounted(() => {
 // Update local ref if store changes
 watch(() => store.backendUrl, (newUrl) => {
   if (newUrl) ipAddress.value = newUrl
+})
+
+// Watch for auto-cancel message
+watch(() => store.autoCancelledMessage, (message) => {
+  if (message) {
+    toast.add({
+      severity: 'error',
+      summary: 'Impresión cancelada',
+      detail: message,
+      life: 5000
+    })
+    // Clear the message after showing
+    store.clearAutoCancelledMessage()
+  }
 })
 
 async function updateIp() {

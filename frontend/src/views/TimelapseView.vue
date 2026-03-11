@@ -7,10 +7,6 @@
           Biblioteca de Timelapses
         </h1>
         <div class="header-actions">
-          <button class="import-btn" @click="importFromBackend" :disabled="loading || !apiBase">
-            <i class="pi pi-cloud-upload"></i>
-            Importar desde impresora
-          </button>
           <button class="refresh-btn" @click="fetchTimelapses" :disabled="loading">
             <i class="pi pi-refresh" :class="{ 'spin': loading }"></i>
             Actualizar
@@ -128,7 +124,6 @@ import { useUserStore } from '../stores/user'
 import { db, storage } from '../services/firebase'
 import { collection, query, where, getDocs, deleteDoc, doc } from 'firebase/firestore'
 import { ref as storageRef, getDownloadURL, deleteObject } from 'firebase/storage'
-import { uploadTimelapseBlob } from '../services/timelapseService'
 
 const store = usePrinterStore()
 const userStore = useUserStore()
@@ -155,22 +150,6 @@ onMounted(() => {
   fetchTimelapses()
 })
 
-// cuando cambia el estado de impresión, si acaba (true -> false) hacemos import
-import('vue').then(({ watch }) => {
-  watch(
-    () => store.isPrinting,
-    async (isPrinting, wasPrinting) => {
-      if (wasPrinting && !isPrinting) {
-        // la impresión ha terminado: intentamos traer el timelapse
-        try {
-          await importFromBackend()
-        } catch (e) {
-          console.error('Error automatic import after print:', e)
-        }
-      }
-    }
-  )
-})
 
 async function fetchTimelapses() {
   if (!userStore.currentUser) {
@@ -258,39 +237,6 @@ async function doDelete() {
     console.error('Error deleting video:', e)
   } finally {
     deleteTarget.value = null
-  }
-}
-
-// ---------- logic to import from backend ----------
-async function importFromBackend() {
-  if (!apiBase.value) return
-
-  loading.value = true
-  error.value = null
-
-  try {
-    const resp = await fetch(`${apiBase.value}/api/timelapse`)
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
-    const data = await resp.json()
-    const files = data.files || []
-    for (const f of files) {
-      // download each file as blob
-      const dl = await fetch(`${apiBase.value}/api/timelapse/download/${encodeURIComponent(f.name)}`)
-      if (!dl.ok) continue
-      const blob = await dl.blob()
-      try {
-        await uploadTimelapseBlob(blob, f.name)
-      } catch (e) {
-        console.error('Upload failed for', f.name, e)
-      }
-    }
-    // refresh library
-    await fetchTimelapses()
-  } catch (e) {
-    error.value = 'Error al importar desde el backend'
-    console.error('Import error:', e)
-  } finally {
-    loading.value = false
   }
 }
 

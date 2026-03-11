@@ -43,9 +43,14 @@ class ConnectionManager:
 
 manager = ConnectionManager()
 
+# Estado previo para detectar transiciones de impresión
+_previous_printing = False
+_known_timelapses: set = set()
+
 
 # Tarea en segundo plano para push de datos
 async def broadcast_updates():
+    global _previous_printing, _known_timelapses
     """Obtiene datos y los envía a todos los clientes cada 3 segundos"""
     while True:
         if manager.active_connections:
@@ -90,24 +95,111 @@ async def broadcast_updates():
                     processed_image = draw_detections(image_bytes, predictions)
                     snapshot_b64 = base64.b64encode(processed_image).decode('utf-8')
                 
+                # Cancelación automática si hay errores y está imprimiendo
+                auto_cancelled = False
+                if detections.get("has_errors", False) and "print" in status["state"].lower():
+                    print("[Auto-cancel] Error detectado, cancelando impresión...")
+                    await loop.run_in_executor(None, octoprint_client.cancel_print)
+                    auto_cancelled = True
+                    # Actualizar estado después de cancelar
+                    status_raw = await loop.run_in_executor(None, octoprint_client.get_printer_status)
+                    printer = status_raw.get("printer", {})
+                    status["state"] = printer.get("state", {}).get("text", "Desconocido")
+
+                # Detectar transición de impresión → no-impresión
+                currently_printing = "print" in status["state"].lower()
+                print_just_ended = _previous_printing and not currently_printing
+                _previous_printing = currently_printing
+                
                 # Enviar a todos los clientes
                 await manager.broadcast({
                     "type": "update",
                     "data": {
                         "status": status,
                         "detections": detections,
-                        "snapshot": f"data:image/jpeg;base64,{snapshot_b64}" if snapshot_b64 else None
+                        "snapshot": f"data:image/jpeg;base64,{snapshot_b64}" if snapshot_b64 else None,
+                        "auto_cancelled": auto_cancelled
                     }
                 })
+
+                # Si la impresión acaba de terminar, buscar timelapses nuevos
+                if print_just_ended:
+                    print("[Timelapse] Impresión finalizada, esperando renderizado del timelapse...")
+                    # Lanzar tarea para no bloquear el broadcast
+                    asyncio.create_task(_check_and_notify_timelapse())
+
             except Exception as e:
                 print(f"Error en broadcast: {e}")
         
         await asyncio.sleep(1)
 
 
+async def _check_and_notify_timelapse():
+    """
+    Espera a que OctoPrint renderice el timelapse y notifica a los clientes
+    si hay archivos nuevos disponibles.
+    """
+    global _known_timelapses
+
+    # Esperar a que OctoPrint renderice el timelapse
+    await asyncio.sleep(15)
+
+    loop = asyncio.get_event_loop()
+
+    # Reintentar varias veces por si el renderizado toma más tiempo
+    for attempt in range(5):
+        try:
+            current_files = await loop.run_in_executor(
+                None, octoprint_client.list_timelapses
+            )
+            current_names = {f["name"] for f in current_files}
+
+            # Detectar archivos nuevos
+            new_files = [
+                f for f in current_files if f["name"] not in _known_timelapses
+            ]
+
+            # Actualizar lista conocida
+            _known_timelapses = current_names
+
+            if new_files:
+                print(f"[Timelapse] {len(new_files)} nuevo(s) encontrado(s): "
+                      f"{[f['name'] for f in new_files]}")
+                await manager.broadcast({
+                    "type": "timelapse_ready",
+                    "files": new_files
+                })
+                return
+            else:
+                print(f"[Timelapse] Intento {attempt + 1}/5: "
+                      "sin timelapse nuevo aún, esperando...")
+                await asyncio.sleep(10)
+        except Exception as e:
+            print(f"[Timelapse] Error al consultar timelapses: {e}")
+            await asyncio.sleep(10)
+
+    print("[Timelapse] No se encontraron timelapses nuevos tras 5 intentos.")
+
+
 # Lifecycle para iniciar/parar tarea de broadcast
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    global _known_timelapses
+
+    # cargar modelo local en background para que los pesos se descarguen
+    try:
+        roboflow_client._load_model()
+    except Exception as e:
+        print(f"[Inference] aviso: error al precargar modelo: {e}")
+
+    # Inicializar lista de timelapses conocidos
+    try:
+        existing = octoprint_client.list_timelapses()
+        _known_timelapses = {f["name"] for f in existing}
+        print(f"[Timelapse] {len(_known_timelapses)} timelapses existentes al inicio.")
+    except Exception as e:
+        print(f"[Timelapse] No se pudieron cargar timelapses existentes: {e}")
+
     # Iniciar tarea de broadcast
     task = asyncio.create_task(broadcast_updates())
     yield
@@ -117,8 +209,6 @@ async def lifespan(app: FastAPI):
         await task
     except asyncio.CancelledError:
         pass
-    # Parar contenedor de inferencia al apagar el backend
-    stop_inference_server()
 
 
 app = FastAPI(
@@ -309,96 +399,14 @@ async def delete_timelapse(filename: str):
     }
 
 
-def stop_inference_server():
-    """Para el contenedor Docker del servidor de inferencia"""
-    import subprocess
-    
-    CONTAINER_NAME = "roboflow-inference-server"
-    try:
-        print("[Inference] Deteniendo servidor de inferencia...")
-        subprocess.run(
-            ["docker", "stop", CONTAINER_NAME],
-            capture_output=True, timeout=15
-        )
-        print("[Inference] Servidor detenido.")
-    except Exception as e:
-        print(f"[Inference] Error al detener servidor: {e}")
-
-
-def ensure_inference_server():
-    """Arranca el servidor de inferencia de Roboflow si no está corriendo"""
-    import subprocess
-    import time
-    
-    CONTAINER_NAME = "roboflow-inference-server"
-    
-    # Comprobar si el contenedor ya existe y está corriendo
-    try:
-        result = subprocess.run(
-            ["docker", "ps", "--filter", f"name={CONTAINER_NAME}", "--format", "{{.Names}}"],
-            capture_output=True, text=True, timeout=5
-        )
-        if CONTAINER_NAME in result.stdout:
-            print(f"[Inference] Servidor ya corriendo.")
-            return True
-    except Exception:
-        pass
-    
-    # Comprobar si existe parado y arrancarlo
-    try:
-        result = subprocess.run(
-            ["docker", "ps", "-a", "--filter", f"name={CONTAINER_NAME}", "--format", "{{.Names}}"],
-            capture_output=True, text=True, timeout=5
-        )
-        if CONTAINER_NAME in result.stdout:
-            print(f"[Inference] Contenedor existe pero parado. Arrancando...")
-            subprocess.run(["docker", "start", CONTAINER_NAME], capture_output=True, timeout=10)
-        else:
-            # Crear y arrancar el contenedor
-            print(f"[Inference] Iniciando servidor de inferencia...")
-            subprocess.Popen(
-                [
-                    "docker", "run", "-d",
-                    "--name", CONTAINER_NAME,
-                    "--restart", "unless-stopped",
-                    "-p", "9001:9001",
-                    "roboflow/roboflow-inference-server-cpu:latest"
-                ],
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL
-            )
-    except FileNotFoundError:
-        print("[Inference] ERROR: Docker no está instalado. Ejecuta install.sh primero.")
-        return False
-    except Exception as e:
-        print(f"[Inference] ERROR al arrancar servidor: {e}")
-        return False
-    
-    # Esperar a que el servidor esté listo
-    print("[Inference] Esperando a que el servidor esté listo...")
-    for i in range(30):
-        try:
-            resp = requests.get("http://localhost:9001/info", timeout=2)
-            if resp.status_code == 200:
-                print("[Inference] Servidor listo.")
-                return True
-        except Exception:
-            pass
-        time.sleep(2)
-    
-    print("[Inference] AVISO: Servidor no responde aún. Puede que tarde más en arrancar.")
-    return True
-
-
+# Entry point para ejecutar el servidor directamente
 if __name__ == "__main__":
     import sys
     import uvicorn
-    
+
     if not keyMangement.validate_configuration():
         print("Configuración de OctoPrint no válida. Por favor corrige los errores e intenta de nuevo.")
         sys.exit(1)
-    
-    # Arrancar servidor de inferencia automáticamente
-    ensure_inference_server()
-    
+
     uvicorn.run(app, host="0.0.0.0", port=8000)
+

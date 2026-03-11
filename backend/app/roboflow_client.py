@@ -1,85 +1,44 @@
 """
-Cliente para detección de errores con servidor de inferencia Roboflow local
-El servidor corre en localhost:9001 via Docker
+Cliente para detección de errores usando el modelo local descargado
+con la librería `inference`. Los pesos se obtienen automáticamente la
+primera vez que se instancia el modelo; quedan en caché para no
+volver a descargarlos en ejecuciones posteriores.
 """
-import base64
-import requests
-from app.config import ROBOFLOW_API_URL, ROBOFLOW_MODEL_ID, ROBOFLOW_API_KEY
+from inference import get_model
+
+from app.config import ROBOFLOW_MODEL_ID, ROBOFLOW_API_KEY
 
 
 class RoboflowClient:
     def __init__(self):
-        self.api_url = ROBOFLOW_API_URL
-        self.api_key = ROBOFLOW_API_KEY
+        self.model = None
         self.model_id = ROBOFLOW_MODEL_ID
-    
-    def _build_url(self) -> str:
-        """Construye la URL del endpoint de inferencia local"""
-        return f"{self.api_url}/infer/object_detection"
-    
+        self.api_key = ROBOFLOW_API_KEY
+
+    def _load_model(self):
+        """Devuelve el modelo local, descargándolo si es la primera vez."""
+        if self.model is None:
+            # la función get_model se encarga de cachear pesos automáticamente
+            self.model = get_model(model_id=self.model_id, api_key=self.api_key)
+        return self.model
+
     def detect_errors(self, image_path: str) -> dict:
-        """
-        Detecta errores en una imagen de impresión 3D
-        
-        Args:
-            image_path: Ruta a la imagen
-            
-        Returns:
-            dict con las predicciones del modelo
-        """
+        """Detecta errores en una imagen leyendo desde el disco."""
         try:
             with open(image_path, "rb") as f:
-                image_bytes = f.read()
-            return self.detect_errors_from_bytes(image_bytes)
+                img = f.read()
+            return self.detect_errors_from_bytes(img)
         except Exception as e:
-            return {
-                "error": str(e),
-                "predictions": []
-            }
-    
+            return {"error": str(e), "predictions": []}
+
     def detect_errors_from_bytes(self, image_bytes: bytes) -> dict:
-        """
-        Detecta errores desde bytes de imagen usando el servidor local
-        
-        Args:
-            image_bytes: Bytes de la imagen
-            
-        Returns:
-            dict con las predicciones del modelo
-        """
+        """Detecta errores a partir de bytes usando el modelo cargado."""
         try:
-            # Codificar imagen en base64
-            image_b64 = base64.b64encode(image_bytes).decode("utf-8")
-            
-            # Llamada al servidor de inferencia local
-            response = requests.post(
-                self._build_url(),
-                params={
-                    "api_key": self.api_key,
-                    "model_id": self.model_id
-                },
-                data=image_b64,
-                headers={"Content-Type": "application/x-www-form-urlencoded"},
-                timeout=30
-            )
-            
-            if response.status_code == 200:
-                return response.json()
-            else:
-                return {
-                    "error": f"Inference server error: {response.status_code} - {response.text[:200]}",
-                    "predictions": []
-                }
-        except requests.ConnectionError:
-            return {
-                "error": "Servidor de inferencia no disponible. Ejecuta: inference server start",
-                "predictions": []
-            }
+            model = self._load_model()
+            result = model.infer(image_bytes)
+            return result
         except Exception as e:
-            return {
-                "error": str(e),
-                "predictions": []
-            }
+            return {"error": str(e), "predictions": []}
 
 
 # Instancia global del cliente
