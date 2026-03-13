@@ -28,8 +28,8 @@ if [ -d ".venv" ]; then
     rm -rf .venv
 fi
 
-echo "Creando entorno virtual con $PYTHON_CMD..."
-$PYTHON_CMD -m venv .venv
+echo "Creando entorno virtual con $PYTHON_CMD (--system-site-packages)..."
+$PYTHON_CMD -m venv --system-site-packages .venv
 if [ $? -ne 0 ]; then
     echo "ERROR: No se pudo crear el entorno virtual."
     echo "Prueba: sudo apt install python3-venv"
@@ -43,9 +43,10 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-# Instalar dependencias del sistema necesarias para compilar scipy (armv7l / Raspberry Pi)
-echo "Instalando dependencias del sistema (gfortran, libopenblas-dev)..."
-sudo apt install -y gfortran libopenblas-dev 2>/dev/null || echo "AVISO: No se pudieron instalar dependencias del sistema. Si la instalación falla, ejecuta: sudo apt install gfortran libopenblas-dev"
+# Instalar dependencias del sistema necesarias que causan fallos de memoria si se complian
+echo "Instalando paquetes del sistema precompilados de Python para evitar la compilacion y fallo de memoria (Segmentation fault)..."
+echo "Esto puede pedirte contraseña para sudo..."
+sudo apt install -y python3-scipy python3-numpy 2>/dev/null || echo "AVISO: No se pudieron instalar scipy nativo. Si la instalación falla, ejecuta: sudo apt install python3-scipy"
 
 # Actualizar pip
 echo "Actualizando pip..."
