@@ -82,7 +82,7 @@ fi
 step "Instalando paquetes del sistema precompilados (evita compilar C++)..."
 warn "Esto puede pedirte la contraseña sudo..."
 
-SYS_PKGS=(python3-numpy python3-opencv)
+SYS_PKGS=(python3-numpy python3-opencv python3-av ffmpeg)
 for pkg in "${SYS_PKGS[@]}"; do
     echo -n "  Instalando $pkg... "
     if sudo apt install -y "$pkg" &>/dev/null; then
