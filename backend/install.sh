@@ -77,18 +77,18 @@ EOF
 fi
 
 # ============================================================
-#  4. Paquetes del sistema (evita compilar numpy y opencv)
+#  4. Paquetes del sistema (evita compilar numpy, opencv, av e inference)
 # ============================================================
 step "Instalando paquetes del sistema precompilados (evita compilar C++)..."
 warn "Esto puede pedirte la contraseña sudo..."
 
-SYS_PKGS=(python3-numpy python3-opencv python3-av ffmpeg)
+SYS_PKGS=(python3-numpy python3-opencv python3-av ffmpeg libavformat-dev libavcodec-dev libavdevice-dev libswscale-dev libswresample-dev build-essential python3-dev)
 for pkg in "${SYS_PKGS[@]}"; do
     echo -n "  Instalando $pkg... "
     if sudo apt install -y "$pkg" &>/dev/null; then
         echo -e "${GREEN}✔${NC}"
     else
-        echo -e "${YELLOW}no disponible (se instalará con pip)${NC}"
+        echo -e "${YELLOW}no disponible${NC}"
     fi
 done
 
