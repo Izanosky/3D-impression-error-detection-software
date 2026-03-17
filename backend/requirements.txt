@@ -5,4 +5,4 @@ pillow
 python-multipart
 websockets
 python-dotenv
-inference-cli
+inference
