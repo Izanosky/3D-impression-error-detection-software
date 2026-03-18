@@ -1,26 +1,26 @@
 """
-Cliente para detección de errores usando el modelo local descargado
-con la librería `inference`. Los pesos se obtienen automáticamente la
-primera vez que se instancia el modelo; quedan en caché para no
-volver a descargarlos en ejecuciones posteriores.
+Cliente para detección de errores usando la API hosted de Roboflow.
+Envía las imágenes por HTTP y recibe las predicciones en formato JSON.
 """
-from inference import get_model
+import requests
 
-from app.config import ROBOFLOW_MODEL_ID, ROBOFLOW_API_KEY
+from app.config import ROBOFLOW_API_URL, ROBOFLOW_MODEL_ID, ROBOFLOW_API_KEY, CONFIDENCE_THRESHOLD
 
 
 class RoboflowClient:
     def __init__(self):
-        self.model = None
+        self.api_url = ROBOFLOW_API_URL
         self.model_id = ROBOFLOW_MODEL_ID
         self.api_key = ROBOFLOW_API_KEY
+        self.confidence = CONFIDENCE_THRESHOLD
 
-    def _load_model(self):
-        """Devuelve el modelo local, descargándolo si es la primera vez."""
-        if self.model is None:
-            # la función get_model se encarga de cachear pesos automáticamente
-            self.model = get_model(model_id=self.model_id, api_key=self.api_key)
-        return self.model
+    def _build_url(self) -> str:
+        """Construye la URL del endpoint de detección."""
+        return (
+            f"{self.api_url}/{self.model_id}"
+            f"?api_key={self.api_key}"
+            f"&confidence={self.confidence}"
+        )
 
     def detect_errors(self, image_path: str) -> dict:
         """Detecta errores en una imagen leyendo desde el disco."""
@@ -32,11 +32,17 @@ class RoboflowClient:
             return {"error": str(e), "predictions": []}
 
     def detect_errors_from_bytes(self, image_bytes: bytes) -> dict:
-        """Detecta errores a partir de bytes usando el modelo cargado."""
+        """Detecta errores enviando los bytes de la imagen a la API de Roboflow."""
         try:
-            model = self._load_model()
-            result = model.infer(image_bytes)
-            return result
+            url = self._build_url()
+            response = requests.post(
+                url,
+                data=image_bytes,
+                headers={"Content-Type": "application/octet-stream"},
+                timeout=30,
+            )
+            response.raise_for_status()
+            return response.json()
         except Exception as e:
             return {"error": str(e), "predictions": []}
 

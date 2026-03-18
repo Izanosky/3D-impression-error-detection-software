@@ -185,12 +185,7 @@ async def _check_and_notify_timelapse():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global _known_timelapses
-
-    # cargar modelo local en background para que los pesos se descarguen
-    try:
-        roboflow_client._load_model()
-    except Exception as e:
-        print(f"[Inference] aviso: error al precargar modelo: {e}")
+    # (ya no hace falta precargar modelo — se usa la API hosted de Roboflow)
 
     # Inicializar lista de timelapses conocidos
     try:
