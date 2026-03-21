@@ -9,10 +9,12 @@ load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env.back.templ
 OCTOPRINT_URL = os.getenv("OCTOPRINT_URL", "http://localhost")
 OCTOPRINT_API_KEY = os.getenv("OCTOPRINT_API_KEY", "")
 
-# Roboflow (API hosted)
-ROBOFLOW_API_URL = "https://detect.roboflow.com"
-ROBOFLOW_MODEL_ID = "3d-printer-error-detection/5"
-ROBOFLOW_API_KEY = "PZCqeY4aWL1dSF0Npry5"
+# Modelo local YOLOv8 (reemplaza Roboflow)
+# Ruta al modelo entrenado — puede ser .pt o .onnx
+LOCAL_MODEL_PATH = os.getenv(
+    "MODEL_PATH",
+    os.path.join(os.path.dirname(__file__), "model", "best.pt")
+)
 
 # Detección
-CONFIDENCE_THRESHOLD = 0.5
+CONFIDENCE_THRESHOLD = 0.4

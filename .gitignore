@@ -64,3 +64,27 @@ setup_log.txt
 
 # OS generated
 Desktop.ini
+
+# YOLOv8 / YOLO model files
+runs/
+3d_printer_error_detection.v1-prueba.yolov8/
+
+# Model weights (pre-trained & trained)
+*.pt
+*.onnx
+*.torchscript
+*.engine
+*.tflite
+*.mlmodel
+*.mlpackage
+*.pb
+*.saved_model/
+
+# Training datasets (images & labels)
+datasets/
+train/
+valid/
+test/
+
+# YOLO cache
+*.cache

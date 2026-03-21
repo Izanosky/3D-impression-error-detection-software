@@ -11,7 +11,7 @@ from fastapi import FastAPI, File, Response, UploadFile, WebSocket, WebSocketDis
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.octoprint_client import octoprint_client
-from app.roboflow_client import roboflow_client
+from app.local_model_client import local_model_client
 from app.image_processor import draw_detections, get_detection_summary
 from app.setup import keyMangement
 
@@ -87,7 +87,7 @@ async def broadcast_updates():
                 detections = {"has_errors": False, "total_detections": 0, "classes": {}}
                 
                 if image_bytes:
-                    predictions_result = roboflow_client.detect_errors_from_bytes(image_bytes)
+                    predictions_result = local_model_client.detect_errors_from_bytes(image_bytes)
                     predictions = predictions_result.get("predictions", [])
                     detections = get_detection_summary(predictions)
                     
