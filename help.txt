@@ -59,3 +59,13 @@
   5. npm no encontrado
      → Instalar Node.js: sudo apt install nodejs npm
      → O usar nvm: https://github.com/nvm-sh/nvm
+
+== MODELO IA (YOLOv8) ==
+
+  Para que la aplicación detecte los errores correctamente, debes
+  asegurarte de que has colocado tu modelo entrenado en la ruta correcta:
+  backend/app/model/best.pt
+
+  Los archivos yolov8n.pt y yolo26n.pt en la raíz son residuales del
+  proceso de entrenamiento y puedes ignorarlos/borrarlos si la
+  aplicación ya está configurada.

@@ -19,10 +19,10 @@ Sistema de detección de errores en impresión 3D usando visión por computadora
 | Node.js | 18+ |
 | Navegador | Chrome, Firefox, Edge (moderno) |
 
-### Servicios Externos
-| Servicio | Descripción |
-|----------|-------------|
-| Roboflow | API de detección de errores (modelo `3d-printer-error-detection/5`) |
+### Inteligencia Artificial (Local)
+| Componente | Descripción |
+|------------|-------------|
+| YOLOv8 | Modelo local de detección de errores (`backend/app/model/best.pt`) |
 
 ---
 
@@ -40,8 +40,8 @@ Sistema de detección de errores en impresión 3D usando visión por computadora
                               │                 │                 │
                               ▼                 ▼                 ▼
                        ┌──────────┐      ┌──────────┐      ┌──────────┐
-                       │OctoPrint │      │  Cámara  │      │ Roboflow │
-                       │   API    │      │          │      │   API    │
+                       │OctoPrint │      │  Cámara  │      │  YOLOv8  │
+                       │   API    │      │          │      │ (Local)  │
                        └──────────┘      └──────────┘      └──────────┘
 ```
 
@@ -71,9 +71,9 @@ Backend (automático):
   ├─► 2. Captura imagen de cámara
   │      GET /webcam/?action=snapshot
   │
-  ├─► 3. Envía imagen a Roboflow
-  │      POST → Imagen JPEG
-  │      ◄── Respuesta JSON con predicciones
+  ├─► 3. Procesa imagen en Local (YOLOv8)
+  │      Analiza imagen JPEG en el modelo best.pt
+  │      ◄── Devuelve predicciones de errores detectados
   │
   ├─► 4. Procesa imagen
   │      Dibuja bounding boxes sobre errores detectados
@@ -168,6 +168,19 @@ Usuario pulsa "Pausar":
 ```json
 {"action": "resume"}
 ```
+
+---
+
+## 🧠 Modelo de Inteligencia Artificial (YOLOv8)
+
+La aplicación utiliza un modelo YOLOv8 que procesa las imágenes de forma rápida y segura en tu propia máquina (Local Inference), sin depender de la nube.
+
+1. **Ubicación del Modelo:**
+   Asegúrate de colocar tu archivo de modelo ya entrenado (por ejemplo, `best.pt`) en la siguiente ruta antes de arrancar el servidor backend:
+   `backend/app/model/best.pt`
+
+2. **Entrenamiento (Opcional):**
+   Si deseas entrenar tu propio modelo desde cero con nuevas imágenes, esta aplicación incluye el script `train_model.py`. Debes tener un dataset adecuadamente formateado localmente (definido en `data.yaml`).
 
 ---
 
@@ -326,7 +339,7 @@ TFG/
 │   │   ├── main.py              # API + WebSocket
 │   │   ├── config.py            # Configuración persistente
 │   │   ├── octoprint_client.py  # Cliente OctoPrint
-│   │   ├── roboflow_client.py   # Cliente Roboflow
+│   │   ├── local_model_client.py# Cliente modelo local YOLOv8
 │   │   └── image_processor.py   # Dibujado bounding boxes
 │   ├── settings.json            # Configuración guardada
 │   ├── requirements.txt
