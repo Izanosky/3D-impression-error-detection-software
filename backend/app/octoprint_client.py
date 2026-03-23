@@ -3,6 +3,7 @@ Cliente para comunicación con OctoPrint API
 """
 import os
 import requests
+from app.config import WEBCAM_SNAPSHOT_URL
 
 
 class OctoPrintClient:
@@ -58,9 +59,9 @@ class OctoPrintClient:
         headers = self._get_headers()
         
         try:
-            # URL típica de webcam en OctoPrint
+            # URL directa configurada para la cámara
             response = requests.get(
-                f"{base_url}/webcam/?action=snapshot",
+                WEBCAM_SNAPSHOT_URL,
                 headers=headers,
                 timeout=10
             )
