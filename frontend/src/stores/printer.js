@@ -3,6 +3,7 @@ import { ref, computed, watch } from 'vue'
 import { useUserStore } from './user'
 import { updateUser, getUserByUid } from '../services/usersService'
 import { uploadTimelapseBlob } from '../services/timelapseService'
+import { detectErrorsYolov8 } from '../services/inferenceService'
 
 export const usePrinterStore = defineStore('printer', () => {
     // ── State ──
@@ -76,7 +77,9 @@ export const usePrinterStore = defineStore('printer', () => {
             wsConnected.value = true
         }
 
-        websocket.onmessage = (event) => {
+        let isProcessing = false;
+        
+        websocket.onmessage = async (event) => {
             try {
                 const message = JSON.parse(event.data)
 
@@ -84,14 +87,24 @@ export const usePrinterStore = defineStore('printer', () => {
                     if (message.data.status) {
                         status.value = message.data.status
                     }
-                    if (message.data.detections) {
-                        detections.value = message.data.detections
-                    }
                     if (message.data.snapshot) {
                         snapshotUrl.value = message.data.snapshot
-                    }
-                    if (message.data.auto_cancelled) {
-                        autoCancelledMessage.value = 'Impresión cancelada automáticamente por detección de errores.'
+                        
+                        // Inferir en frontend sin procesar más de una a la vez
+                        if (!isProcessing) {
+                            isProcessing = true;
+                            detectErrorsYolov8(message.data.snapshot).then(result => {
+                                detections.value.has_errors = result.has_errors;
+                                
+                                if (result.has_errors && status.value.state?.toLowerCase().includes('print')) {
+                                    console.warn('[Frontend-AI] Error detectado, auto-cancelando impresión...');
+                                    cancelPrint();
+                                    autoCancelledMessage.value = 'Impresión cancelada automáticamente por detección de errores (Inferencia Local).';
+                                }
+                            }).catch(console.error).finally(() => {
+                                isProcessing = false;
+                            });
+                        }
                     }
                 } else if (message.type === 'timelapse_ready') {
                     console.log('[Timelapse] Nuevos timelapses disponibles:', message.files)
@@ -108,6 +121,7 @@ export const usePrinterStore = defineStore('printer', () => {
             console.log('WebSocket desconectado')
             wsConnected.value = false
             status.value.connected = false
+            snapshotUrl.value = '' // Limpiar imagen congelada
         }
 
         websocket.onerror = (error) => {
@@ -248,10 +262,11 @@ export const usePrinterStore = defineStore('printer', () => {
         const savedUrl = localStorage.getItem(STORAGE_KEY)
         if (savedUrl) {
             backendUrl.value = savedUrl
+            connect() // Auto-conectar al refrescar o cargar la app inicial
         }
     }
 
-    // Sync printer IP from user profile on login (without auto-connecting)
+    // Sync printer IP from user profile on login
     const userStore = useUserStore()
     watch(() => userStore.currentUser, async (user) => {
         if (user) {
@@ -261,6 +276,10 @@ export const usePrinterStore = defineStore('printer', () => {
                     console.log('Syncing printer IP from profile:', userData.printerIp)
                     backendUrl.value = userData.printerIp
                     localStorage.setItem(STORAGE_KEY, backendUrl.value)
+                    
+                    if (!wsConnected.value) {
+                        connect() // Reconectar al iniciar sesión si había IP vinculada
+                    }
                 }
             } catch (err) {
                 console.error('Error fetching user printer IP:', err)

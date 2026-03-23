@@ -12,6 +12,7 @@
     "@primevue/forms": "^4.5.4",
     "@primevue/themes": "^4.0.0",
     "firebase": "^12.9.0",
+    "onnxruntime-web": "^1.24.3",
     "pinia": "^2.1.0",
     "primeflex": "^4.0.0",
     "primeicons": "^7.0.0",

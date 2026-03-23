@@ -11,8 +11,6 @@ from fastapi import FastAPI, File, Response, UploadFile, WebSocket, WebSocketDis
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.octoprint_client import octoprint_client
-from app.local_model_client import local_model_client
-from app.image_processor import draw_detections, get_detection_summary
 from app.setup import keyMangement
 
 
@@ -79,32 +77,20 @@ async def broadcast_updates():
                     "error": status_raw.get("error")
                 }
                 
-                # Obtener imagen y detecciones
+                # Obtener imagen original
                 image_bytes = await loop.run_in_executor(
                     None, octoprint_client.get_snapshot
                 )
                 snapshot_b64 = None
+                
+                # Dejamos la IA al Frontend; el backend inicializa vacío.
                 detections = {"has_errors": False, "total_detections": 0, "classes": {}}
                 
                 if image_bytes:
-                    predictions_result = local_model_client.detect_errors_from_bytes(image_bytes)
-                    predictions = predictions_result.get("predictions", [])
-                    detections = get_detection_summary(predictions)
-                    
-                    # Procesar imagen con bounding boxes
-                    processed_image = draw_detections(image_bytes, predictions)
-                    snapshot_b64 = base64.b64encode(processed_image).decode('utf-8')
+                    snapshot_b64 = base64.b64encode(image_bytes).decode('utf-8')
                 
-                # Cancelación automática si hay errores y está imprimiendo
                 auto_cancelled = False
-                if detections.get("has_errors", False) and "print" in status["state"].lower():
-                    print("[Auto-cancel] Error detectado, cancelando impresión...")
-                    await loop.run_in_executor(None, octoprint_client.cancel_print)
-                    auto_cancelled = True
-                    # Actualizar estado después de cancelar
-                    status_raw = await loop.run_in_executor(None, octoprint_client.get_printer_status)
-                    printer = status_raw.get("printer", {})
-                    status["state"] = printer.get("state", {}).get("text", "Desconocido")
+                # Frontend enviará un WS 'cancel' si detecta errores localmente
 
                 # Detectar transición de impresión → no-impresión
                 currently_printing = "print" in status["state"].lower()
