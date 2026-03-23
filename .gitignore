@@ -72,6 +72,10 @@ runs/
 # Model weights (pre-trained & trained)
 *.pt
 *.onnx
+
+# Permitir específicamente la carpeta de nuestro modelo local:
+!backend/app/model/*.pt
+!backend/app/model/*.onnx
 *.torchscript
 *.engine
 *.tflite
