@@ -5,6 +5,5 @@ pillow
 python-multipart
 websockets
 python-dotenv
-onnxruntime
 numpy
 opencv-python-headless
