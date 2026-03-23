@@ -13,7 +13,7 @@ OCTOPRINT_API_KEY = os.getenv("OCTOPRINT_API_KEY", "")
 # Ruta al modelo entrenado — puede ser .pt o .onnx
 LOCAL_MODEL_PATH = os.getenv(
     "MODEL_PATH",
-    os.path.join(os.path.dirname(__file__), "model", "best.pt")
+    os.path.join(os.path.dirname(__file__), "model", "best.onnx")
 )
 
 # Detección
