@@ -77,17 +77,8 @@ async def broadcast_updates():
                     "error": status_raw.get("error")
                 }
                 
-                # Obtener imagen original
-                image_bytes = await loop.run_in_executor(
-                    None, octoprint_client.get_snapshot
-                )
-                snapshot_b64 = None
-                
                 # Dejamos la IA al Frontend; el backend inicializa vacío.
                 detections = {"has_errors": False, "total_detections": 0, "classes": {}}
-                
-                if image_bytes:
-                    snapshot_b64 = base64.b64encode(image_bytes).decode('utf-8')
                 
                 auto_cancelled = False
                 # Frontend enviará un WS 'cancel' si detecta errores localmente
@@ -103,7 +94,6 @@ async def broadcast_updates():
                     "data": {
                         "status": status,
                         "detections": detections,
-                        "snapshot": f"data:image/jpeg;base64,{snapshot_b64}" if snapshot_b64 else None,
                         "auto_cancelled": auto_cancelled
                     }
                 })
@@ -273,6 +263,7 @@ async def websocket_endpoint(websocket: WebSocket):
 async def root():
     """Endpoint de bienvenida"""
     return {"message": "3D Printer Monitor API", "status": "running", "websocket": "/ws"}
+
 
 
 @app.get("/api/status")

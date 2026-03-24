@@ -31,7 +31,7 @@ export const usePrinterStore = defineStore('printer', () => {
         classes: {}
     })
 
-    const snapshotUrl = ref('')
+    const streamUrl = ref('')
 
     const autoCancelledMessage = ref('')
 
@@ -72,12 +72,17 @@ export const usePrinterStore = defineStore('printer', () => {
 
         websocket = new WebSocket(wsUrl)
 
-        websocket.onopen = () => {
+        websocket.onopen = async () => {
             console.log('WebSocket conectado')
             wsConnected.value = true
+            
+            // Obtener la IP base del backend (quitando el puerto ej: :8000)
+            const baseIp = backendUrl.value.split(':')[0]
+            
+            // Construir la URL del stream en MJPEG directo de la cámara 
+            // de OctoPrint asumiendo que está en el puerto :80 de esa misma IP.
+            streamUrl.value = `http://${baseIp}/webcam/?action=stream`
         }
-
-        let isProcessing = false;
         
         websocket.onmessage = async (event) => {
             try {
@@ -86,25 +91,6 @@ export const usePrinterStore = defineStore('printer', () => {
                 if (message.type === 'update') {
                     if (message.data.status) {
                         status.value = message.data.status
-                    }
-                    if (message.data.snapshot) {
-                        snapshotUrl.value = message.data.snapshot
-                        
-                        // Inferir en frontend sin procesar más de una a la vez
-                        if (!isProcessing) {
-                            isProcessing = true;
-                            detectErrorsYolov8(message.data.snapshot).then(result => {
-                                detections.value.has_errors = result.has_errors;
-                                
-                                if (result.has_errors && status.value.state?.toLowerCase().includes('print')) {
-                                    console.warn('[Frontend-AI] Error detectado, auto-cancelando impresión...');
-                                    cancelPrint();
-                                    autoCancelledMessage.value = 'Impresión cancelada automáticamente por detección de errores (Inferencia Local).';
-                                }
-                            }).catch(console.error).finally(() => {
-                                isProcessing = false;
-                            });
-                        }
                     }
                 } else if (message.type === 'timelapse_ready') {
                     console.log('[Timelapse] Nuevos timelapses disponibles:', message.files)
@@ -121,7 +107,7 @@ export const usePrinterStore = defineStore('printer', () => {
             console.log('WebSocket desconectado')
             wsConnected.value = false
             status.value.connected = false
-            snapshotUrl.value = '' // Limpiar imagen congelada
+            streamUrl.value = '' // Limpiar imagen congelada
         }
 
         websocket.onerror = (error) => {
@@ -297,7 +283,7 @@ export const usePrinterStore = defineStore('printer', () => {
         gcodeFiles,
         status,
         detections,
-        snapshotUrl,
+        streamUrl,
         autoCancelledMessage,
         // Getters
         isPrinting,

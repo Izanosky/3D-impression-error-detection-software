@@ -35,7 +35,8 @@
                   </div>
                   <div class="status-row">
                     <span class="status-dot" :class="store.status.connected ? 'dot-green' : 'dot-red'"></span>
-                    <span class="status-text" :class="store.status.connected ? 'text-green' : 'text-red'">Impresora</span>
+                    <span class="status-text"
+                      :class="store.status.connected ? 'text-green' : 'text-red'">Impresora</span>
                   </div>
                 </div>
 
@@ -48,8 +49,7 @@
                   </div>
                 </div>
 
-                <button class="connect-btn" @click="updateIp"
-                  :disabled="store.isPrinting || store.isPaused">
+                <button class="connect-btn" @click="updateIp" :disabled="store.isPrinting || store.isPaused">
                   Conectar
                 </button>
               </div>
@@ -59,7 +59,7 @@
 
         <!-- Bottom Row: Camera -->
         <div class="camera-section">
-          <CameraView :snapshot-url="store.snapshotUrl" :detections="store.detections" />
+          <CameraView :stream-url="store.streamUrl" :detections="store.detections" />
         </div>
       </div>
     </main>
