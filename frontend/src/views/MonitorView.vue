@@ -1,349 +1,338 @@
 <template>
-  <div class="monitor-view">
-    <main class="monitor-main">
-      <h1 class="page-title">Progreso de la impresión</h1>
+  <div class="flex flex-column p-4 md:p-6 mx-auto w-full gap-4" style="max-width: 1400px;">
 
-      <div class="monitor-content">
-        <!-- Top Row: 3 Panels -->
-        <div class="top-panels">
-          <!-- Col 1: Estadísticas -->
-          <div class="panel-wrapper">
-            <PrinterStatus :status="store.status" />
+    <h1 class="text-3xl font-bold text-white m-0 flex align-items-center gap-3 border-bottom-1 surface-border pb-3">
+      <i class="pi pi-print text-primary" style="font-size: 2rem"></i>
+      Monitorización de Impresión
+    </h1>
+
+    <!-- Main Content (Accordions) -->
+    <div class="flex flex-column gap-4">
+
+      <!-- Desplegable 1: Configuración -->
+      <Panel toggleable :collapsed="configCollapsed" @update:collapsed="configCollapsed = $event" class="shadow-4">
+        <template #header>
+          <div class="text-xl font-semibold flex align-items-center gap-2 transition-colors duration-200"
+            :class="!configCollapsed ? 'text-primary' : 'text-white'">
+            <i class="pi pi-cog"></i> Configuración
           </div>
+        </template>
+        <div class="grid pt-3">
 
-          <!-- Col 2: Propiedades -->
-          <div class="panel-wrapper">
-            <ControlPanel :is-printing="store.isPrinting" :is-paused="store.isPaused" :has-file="store.hasFile"
-              :uploading="store.uploading" :files="store.gcodeFiles" :current-file="store.status.job?.file || ''"
-              @pause="store.pausePrint" @resume="store.resumePrint" @cancel="store.cancelPrint"
-              @start="store.startPrint" @upload="store.uploadGcode" @select-file="store.selectFile"
-              @refresh-files="store.fetchFiles" />
-          </div>
+          <!-- Sistema -->
+          <div
+            class="col-12 lg:col-6 flex flex-column gap-3 border-right-none lg:border-right-1 surface-border pr-0 lg:pr-4">
+            <div class="text-lg font-semibold flex align-items-center gap-2 mb-2">
+              <i class="pi pi-desktop text-color-secondary"></i> Sistema
+            </div>
 
-          <!-- Col 3: Sistema -->
-          <div class="panel-wrapper system-wrapper">
-            <div class="sidebar-panel connection-panel">
-              <div class="panel-header">
-                <span>Sistema</span>
+            <div class="flex flex-column gap-2 bg-white-alpha-10 p-3 border-round">
+              <div class="flex align-items-center justify-content-between">
+                <span class="font-medium text-base text-color-secondary">Backend</span>
+                <Tag :severity="store.wsConnected ? 'success' : 'danger'"
+                  :value="store.wsConnected ? 'Conectado' : 'Desconectado'" />
               </div>
-              <div class="panel-content">
-                <!-- Connection Status (2 steps) -->
-                <div class="connection-status">
-                  <div class="status-row">
-                    <span class="status-dot" :class="store.wsConnected ? 'dot-green' : 'dot-red'"></span>
-                    <span class="status-text" :class="store.wsConnected ? 'text-green' : 'text-red'">Backend</span>
-                  </div>
-                  <div class="status-row">
-                    <span class="status-dot" :class="store.status.connected ? 'dot-green' : 'dot-red'"></span>
-                    <span class="status-text"
-                      :class="store.status.connected ? 'text-green' : 'text-red'">Impresora</span>
-                  </div>
-                </div>
+              <div class="flex align-items-center justify-content-between mt-1">
+                <span class="font-medium text-base text-color-secondary">Impresora</span>
+                <Tag :severity="store.status.connected ? 'success' : 'danger'"
+                  :value="store.status.connected ? 'Conectada' : 'Desconectada'" />
+              </div>
+            </div>
 
-                <div class="ip-group">
-                  <label class="input-label">IP:</label>
-                  <div class="ip-input-wrapper">
-                    <input type="text" class="ip-input" v-model="ipAddress" placeholder="192.168.0.1"
-                      :disabled="store.isPrinting || store.isPaused" />
-                    <i class="pi pi-wifi ip-icon"></i>
-                  </div>
-                </div>
+            <div class="flex flex-column gap-1 mt-auto pt-2">
+              <span class="text-xs font-semibold text-color-secondary uppercase">Conexión IP</span>
+              <InputGroup>
+                <InputText v-model="ipAddress" placeholder="Ej: 192.168.1.100" class="bg-white-alpha-10 w-full"
+                  :disabled="store.isPrinting || store.isPaused" />
+                <Button label="Conectar" icon="pi pi-bolt" @click="updateIp"
+                  :disabled="store.isPrinting || store.isPaused || !ipAddress.trim()" />
+              </InputGroup>
+            </div>
+          </div>
 
-                <button class="connect-btn" @click="updateIp" :disabled="store.isPrinting || store.isPaused">
-                  Conectar
-                </button>
+          <!-- Propiedades -->
+          <div class="col-12 lg:col-6 flex flex-column gap-3 pt-4 lg:pt-0 pl-0 lg:pl-4">
+            <div class="text-lg font-semibold flex align-items-center gap-2 mb-2">
+              <i class="pi pi-sliders-h text-color-secondary"></i> Propiedades
+            </div>
+
+            <div class="flex flex-column gap-1">
+              <span class="text-xs font-semibold text-color-secondary uppercase">Seleccionar Archivos</span>
+              <Select v-model="selectedFile" :options="store.gcodeFiles" optionLabel="name" optionValue="name"
+                placeholder="Seleccionar archivo..." class="w-full"
+                :disabled="store.isPrinting || store.isPaused || store.uploading" @change="onFileChange" />
+            </div>
+
+            <div class="flex flex-column gap-1">
+              <span class="text-xs font-semibold text-color-secondary uppercase">Subir Archivo</span>
+              <FileUpload mode="basic" auto customUpload @uploader="onFileUploadPrime" accept=".gcode,.gco,.g"
+                :chooseLabel="store.uploading ? 'Subiendo...' : 'Subir Archivo'"
+                :chooseIcon="store.uploading ? 'pi pi-spin pi-spinner' : 'pi pi-upload'"
+                :disabled="store.isPrinting || store.isPaused || store.uploading" class="w-full"
+                pt:chooseButton="w-full p-button-secondary p-button-outlined" />
+            </div>
+
+            <div class="flex flex-column gap-2 mt-auto pt-4">
+              <Button v-if="!store.isPrinting && !store.isPaused" label="Iniciar Impresión" icon="pi pi-play"
+                :disabled="!store.hasFile || store.uploading" @click="store.startPrint" />
+              <Button v-else-if="store.isPrinting && !store.isPaused" label="Pausar Impresión" icon="pi pi-pause"
+                severity="warning" @click="store.pausePrint" />
+              <Button v-else label="Reanudar Impresión" icon="pi pi-play" @click="store.resumePrint" />
+              <Button label="Cancelar Impresión" icon="pi pi-times" severity="danger" outlined
+                :disabled="!store.isPrinting && !store.isPaused" @click="store.cancelPrint" />
+            </div>
+          </div>
+
+        </div>
+      </Panel>
+
+      <!-- Desplegable 2: Monitorización (Cámara y Estadísticas) -->
+      <Panel toggleable :collapsed="monitorCollapsed" @update:collapsed="monitorCollapsed = $event" class="shadow-4">
+        <template #header>
+          <div class="text-xl font-semibold flex align-items-center gap-2 transition-colors duration-200"
+            :class="!monitorCollapsed ? 'text-primary' : 'text-white'">
+            <i class="pi pi-video"></i> Seguimiento en Vivo
+          </div>
+        </template>
+        <div class="grid pt-3">
+
+          <!-- Cámara -->
+          <div class="col-12 lg:col-8 flex flex-column gap-3">
+            <div class="text-lg font-semibold flex align-items-center gap-2">
+              <i class="pi pi-camera text-color-secondary"></i> Cámara
+            </div>
+
+            <div
+              class="relative w-full flex align-items-center justify-content-center bg-black overflow-hidden border-round-xl border-1 surface-border shadow-4 p-2"
+              style="aspect-ratio: 16/9;">
+              <!-- MJPEG Stream -->
+              <img ref="cameraImg" v-if="store.streamUrl" :src="store.streamUrl" crossorigin="anonymous"
+                alt="Vista de cámara" class="w-full h-full block border-round" style="object-fit: contain;"
+                @error="handleImageError" />
+              <div v-else
+                class="text-color-secondary text-xl flex flex-column align-items-center justify-content-center w-full h-full gap-3">
+                <i class="pi pi-camera" style="font-size: 4rem"></i>
+                <span>Cámara no disponible</span>
+              </div>
+
+              <!-- Hidden Canvas for Inference -->
+              <canvas ref="captureCanvas" class="hidden"></canvas>
+
+              <!-- Detection Overlay -->
+              <div v-if="store.detections?.has_errors" class="absolute top-0 right-0 p-3 z-5">
+                <Tag value="¡Error Detectado!" severity="danger" icon="pi pi-exclamation-triangle"
+                  class="text-lg px-3 py-2 shadow-4 animate-pulse" />
               </div>
             </div>
           </div>
-        </div>
 
-        <!-- Bottom Row: Camera -->
-        <div class="camera-section">
-          <CameraView :stream-url="store.streamUrl" :detections="store.detections" />
+          <!-- Estadísticas -->
+          <div
+            class="col-12 lg:col-4 flex flex-column gap-3 pt-4 lg:pt-0 pl-0 lg:pl-4 border-left-none lg:border-left-1 surface-border">
+            <div class="text-lg font-semibold flex align-items-center gap-2">
+              <i class="pi pi-chart-bar text-color-secondary"></i> Estadísticas
+            </div>
+
+            <div class="flex flex-column gap-1 bg-white-alpha-10 p-3 border-round">
+              <span class="text-color-secondary uppercase text-xs font-semibold">Archivo Actual</span>
+              <span class="font-medium text-overflow-ellipsis overflow-hidden white-space-nowrap"
+                :title="store.status.job?.file">{{ store.status.job?.file || 'Ningún archivo' }}</span>
+            </div>
+
+            <div class="flex gap-3">
+              <div
+                class="flex-1 flex flex-column align-items-center bg-white-alpha-10 p-3 border-round gap-1 justify-content-center">
+                <span class="text-color-secondary uppercase text-xs font-semibold text-center">Extrusor</span>
+                <span class="text-xl font-bold text-orange-400">{{ formatTemp(store.status.temperatures?.tool0?.actual)
+                  }}</span>
+              </div>
+              <div
+                class="flex-1 flex flex-column align-items-center bg-white-alpha-10 p-3 border-round gap-1 justify-content-center">
+                <span class="text-color-secondary uppercase text-xs font-semibold text-center">Cama Caliente</span>
+                <span class="text-xl font-bold text-red-400">{{ formatTemp(store.status.temperatures?.bed?.actual)
+                  }}</span>
+              </div>
+            </div>
+
+            <div class="flex flex-column gap-3 bg-white-alpha-10 p-3 border-round mt-auto">
+              <!-- Progreso -->
+              <div class="flex justify-content-between align-items-center">
+                <span class="text-color-secondary text-xs font-semibold uppercase">Progreso</span>
+                <span class="font-bold text-primary">{{ Math.round(store.status.progress?.completion || 0) }}%</span>
+              </div>
+              <ProgressBar :value="store.status.progress?.completion || 0" :showValue="false"
+                style="height: 8px; margin-top: -8px;" />
+
+              <!-- Tiempos -->
+              <div class="flex justify-content-between border-top-1 surface-border pt-2">
+                <div class="flex flex-column">
+                  <span class="text-xs text-color-secondary">Transcurrido</span>
+                  <span class="font-mono font-medium">{{ formatTime(store.status.job?.time_elapsed) }}</span>
+                </div>
+                <div class="flex flex-column text-right">
+                  <span class="text-xs text-color-secondary">Restante</span>
+                  <span class="font-mono font-medium">{{ formatTime(store.status.job?.time_remaining) }}</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
         </div>
-      </div>
-    </main>
+      </Panel>
+
+    </div>
     <Toast />
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
-import CameraView from '../components/CameraView.vue'
-import PrinterStatus from '../components/PrinterStatus.vue'
-import ControlPanel from '../components/ControlPanel.vue'
-import Toast from 'primevue/toast'
-import { useToast } from 'primevue/usetoast'
+import { ref, watch, onMounted, onUnmounted } from 'vue'
 import { usePrinterStore } from '../stores/printer'
+import { detectErrorsYolov8 } from '../services/inferenceService'
+import { useToast } from 'primevue/usetoast'
+
+import Panel from 'primevue/panel'
+import Tag from 'primevue/tag'
+import ProgressBar from 'primevue/progressbar'
+import Button from 'primevue/button'
+
+import Select from 'primevue/select'
+import InputText from 'primevue/inputtext'
+import InputGroup from 'primevue/inputgroup'
+import FileUpload from 'primevue/fileupload'
+import Toast from 'primevue/toast'
 
 const store = usePrinterStore()
-const ipAddress = ref('')
 const toast = useToast()
 
-onMounted(() => {
-  // Sync IP from store
-  ipAddress.value = store.backendUrl || localStorage.getItem('printer_monitor_backend_url') || ''
+// Accordion Setup
+const configCollapsed = ref(false)
+const monitorCollapsed = ref(true)
+
+watch(() => store.isPrinting, (newVal) => {
+  if (newVal) {
+    configCollapsed.value = true
+    monitorCollapsed.value = false
+  }
 })
 
-// Update local ref if store changes
+const ipAddress = ref('')
+const selectedFile = ref('')
+
+// Camera & Inference Logic
+const cameraImg = ref(null)
+const captureCanvas = ref(null)
+let inferenceInterval = null
+let isProcessing = false
+
+onMounted(() => {
+  // Sync IP
+  ipAddress.value = store.backendUrl || localStorage.getItem('printer_monitor_backend_url') || ''
+
+  // Setup inference loop
+  inferenceInterval = setInterval(async () => {
+    if (!cameraImg.value || !captureCanvas.value || !store.streamUrl || isProcessing) return
+    if (!store.isPrinting) return
+
+    isProcessing = true
+    try {
+      const videoEl = cameraImg.value
+      const canvasEl = captureCanvas.value
+
+      canvasEl.width = videoEl.naturalWidth || 640
+      canvasEl.height = videoEl.naturalHeight || 480
+
+      if (canvasEl.width === 0 || canvasEl.height === 0) return
+
+      const ctx = canvasEl.getContext('2d')
+      ctx.drawImage(videoEl, 0, 0, canvasEl.width, canvasEl.height)
+
+      const captureDataUrl = canvasEl.toDataURL('image/jpeg', 0.8)
+
+      const result = await detectErrorsYolov8(captureDataUrl)
+      store.detections.has_errors = result.has_errors
+
+      if (result.has_errors) {
+        console.warn('[Frontend-AI] Error detectado desde stream local, auto-cancelando impresión...')
+        store.cancelPrint()
+        store.autoCancelledMessage = 'Impresión cancelada automáticamente por detección de errores (Inferencia Local).'
+      }
+    } catch (err) {
+      console.error('[Frontend-AI] Error capturando frame de stream:', err)
+    } finally {
+      isProcessing = false
+    }
+  }, 2000)
+})
+
+onUnmounted(() => {
+  if (inferenceInterval) clearInterval(inferenceInterval)
+})
+
+function handleImageError(e) {
+  e.target.style.display = 'none'
+  const container = e.target.parentElement
+  if (container) {
+    const fallback = container.querySelector('.text-color-secondary')
+    if (fallback) fallback.style.display = 'flex'
+  }
+}
+
+// Watchers
 watch(() => store.backendUrl, (newUrl) => {
   if (newUrl) ipAddress.value = newUrl
 })
 
-// Watch for auto-cancel message
+watch(() => store.status.job?.file, (val) => {
+  if (val && val !== 'Sin archivo') {
+    selectedFile.value = val
+  }
+}, { immediate: true })
+
 watch(() => store.autoCancelledMessage, (message) => {
   if (message) {
-    toast.add({
-      severity: 'error',
-      summary: 'Impresión cancelada',
-      detail: message,
-      life: 5000
-    })
-    // Clear the message after showing
+    toast.add({ severity: 'error', summary: 'Impresión cancelada', detail: message, life: 5000 })
     store.clearAutoCancelledMessage()
   }
 })
 
+// Methods
 async function updateIp() {
   let url = ipAddress.value.trim()
   if (!url) return
-
   url = url.replace(/^https?:\/\//, '')
-
-  // Save the URL
   store.onSettingsSaved(url)
-  // Explicitly connect
   await store.connect()
+}
+
+function onFileUploadPrime(event) {
+  const file = event.files[0]
+  if (file) {
+    store.uploadGcode(file)
+  }
+}
+
+function onFileChange(event) {
+  if (event.value) {
+    store.selectFile(event.value)
+  }
+}
+
+function formatTemp(temp) {
+  if (temp === undefined || temp === null) return '-- °C'
+  return `${Math.round(temp)} °C`
+}
+
+function formatTime(seconds) {
+  if (!seconds || isNaN(seconds)) return '--:--'
+  const h = Math.floor(seconds / 3600)
+  const m = Math.floor((seconds % 3600) / 60)
+  const pad = (n) => n.toString().padStart(2, '0')
+  return h > 0 ? `${h}h ${pad(m)}m` : `${pad(m)}m`
 }
 </script>
 
 <style scoped>
-.monitor-view {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  padding: 2rem;
-  max-width: 1400px;
-  margin: 0 auto;
-  width: 100%;
-}
-
-.page-title {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #fff;
-  margin-bottom: 1.5rem;
-  letter-spacing: -0.25px;
-}
-
-.monitor-content {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-  width: 100%;
-}
-
-.top-panels {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 1.25rem;
-  align-items: stretch;
-  min-height: 320px;
-}
-
-.panel-wrapper {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  overflow: hidden;
-}
-
-.camera-section {
-  background: var(--surface-card, #0f1028);
-  border: 1px solid rgba(99, 102, 241, 0.1);
-  border-radius: 14px;
-  padding: 1.25rem;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 460px;
-  flex: 1;
-}
-
-.sidebar-panel {
-  background: var(--surface-card, #0f1028);
-  border: 1px solid rgba(99, 102, 241, 0.1);
-  border-radius: 14px;
-  overflow: hidden;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-}
-
-.panel-header {
-  text-align: center;
-  font-size: 0.8rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.5);
-  background: rgba(255, 255, 255, 0.03);
-  padding: 0.85rem 1rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-.panel-content {
-  padding: 1.25rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  flex: 1;
-}
-
-.ip-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-}
-
-.input-label {
-  font-size: 0.8rem;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.5);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.ip-input-wrapper {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.ip-input {
-  width: 100%;
-  padding: 0.65rem 2.5rem 0.65rem 1rem;
-  border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.05);
-  color: #fff;
-  font-size: 0.9rem;
-  font-weight: 500;
-  outline: none;
-  transition: border-color 0.2s, box-shadow 0.2s;
-}
-
-.ip-input::placeholder {
-  color: rgba(255, 255, 255, 0.25);
-}
-
-.ip-input:focus {
-  border-color: var(--primary-color, #6366f1);
-  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15);
-}
-
-.ip-icon {
-  position: absolute;
-  right: 0.85rem;
-  color: rgba(255, 255, 255, 0.3);
-  font-size: 1rem;
-}
-
-.connect-btn {
-  background: var(--primary-color, #6366f1);
-  color: #fff;
-  border: none;
-  border-radius: 10px;
-  padding: 0.7rem;
-  font-size: 0.85rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.2s, transform 0.15s;
-  width: 100%;
-  margin-top: auto;
-}
-
-.connect-btn:hover {
-  background: #4f46e5;
-}
-
-.connect-btn:active {
-  transform: scale(0.98);
-}
-
-.connect-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-  transform: none;
-}
-
-.ip-input:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-/* Connection Status */
-.connection-status {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  padding: 0.75rem 1rem;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 10px;
-}
-
-.status-row {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-}
-
-.status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.dot-green {
-  background: #22c55e;
-  box-shadow: 0 0 6px rgba(34, 197, 94, 0.5);
-}
-
-.dot-red {
-  background: #ef4444;
-  box-shadow: 0 0 6px rgba(239, 68, 68, 0.5);
-}
-
-.status-text {
-  font-size: 0.8rem;
-  font-weight: 500;
-}
-
-.text-green {
-  color: #86efac;
-}
-
-.text-red {
-  color: #fca5a5;
-}
-
-@media (max-width: 1200px) {
-  .top-panels {
-    grid-template-columns: 1fr;
-    gap: 1.25rem;
-    min-height: auto;
-  }
-}
-
-@media (max-width: 900px) {
-  .monitor-view {
-    padding: 1.25rem;
-  }
-
-  .camera-section {
-    min-height: 280px;
-  }
-}
+/* Scoped overrides if needed, relying mostly on PrimeFlex styling */
 </style>

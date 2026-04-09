@@ -33,6 +33,12 @@ const routes = [
         path: '/register',
         name: 'register',
         component: () => import('../views/RegisterView.vue')
+    },
+    {
+        path: '/settings',
+        name: 'settings',
+        component: () => import('../views/SettingsView.vue'),
+        meta: { requiresAuth: true }
     }
 ]
 
