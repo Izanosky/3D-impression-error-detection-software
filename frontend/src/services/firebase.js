@@ -1,9 +1,15 @@
-// src/services/firebase.js
+/**
+ * Configuración de Firebase.
+ *
+ * Inicializa la app de Firebase y exporta los servicios
+ * que usa la aplicación: Auth, Firestore y Storage.
+ */
 import { initializeApp } from 'firebase/app'
 import { getAuth, GoogleAuthProvider } from 'firebase/auth'
 import { getFirestore } from 'firebase/firestore'
 import { getStorage } from 'firebase/storage'
 
+// Credenciales cargadas desde variables de entorno (.env.local)
 const firebaseConfig = {
     apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
     authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
@@ -15,7 +21,8 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig)
 
-export const auth = getAuth(app)
-export const googleProvider = new GoogleAuthProvider()
-export const db = getFirestore(app)
-export const storage = getStorage(app)
+// Servicios de Firebase exportados para uso en el resto de la app
+export const auth = getAuth(app)                        // Autenticación
+export const googleProvider = new GoogleAuthProvider()   // Proveedor de Google
+export const db = getFirestore(app)                     // Base de datos Firestore
+export const storage = getStorage(app)                  // Almacenamiento de archivos

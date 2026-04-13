@@ -11,7 +11,8 @@
           <i class="pi pi-user text-primary"></i> Perfil de Usuario
         </div>
       </template>
-      <div class="flex flex-column gap-4 pt-3">
+      <Form v-slot="$form" :initialValues="profileInitialValues" :resolver="profileResolver" @submit="onProfileSubmit"
+        class="flex flex-column gap-4 pt-3">
         <div class="flex flex-column gap-2">
           <label class="text-sm font-semibold text-color-secondary uppercase">Correo Electrónico</label>
           <InputGroup>
@@ -20,16 +21,19 @@
           </InputGroup>
         </div>
 
-        <div class="flex flex-column gap-2">
+        <div class="flex flex-column gap-1">
           <label class="text-sm font-semibold text-color-secondary uppercase">Nombre para mostrar</label>
           <InputGroup>
             <InputGroupAddon class="bg-white-alpha-10 border-none"><i class="pi pi-id-card text-white"></i></InputGroupAddon>
-            <InputText v-model="displayName" class="bg-white-alpha-10 border-none" />
+            <InputText name="displayName" class="bg-white-alpha-10 border-none" />
           </InputGroup>
+          <Message v-if="$form.displayName?.invalid" severity="error" size="small" variant="simple">
+            {{ $form.displayName.error.message }}
+          </Message>
         </div>
 
-        <Button label="Guardar Perfil" icon="pi pi-save" @click="saveProfile" :loading="loading" class="mt-2 w-full md:w-auto align-self-end w-full" />
-      </div>
+        <Button type="submit" label="Guardar Perfil" icon="pi pi-save" :loading="loading" class="mt-2 w-full md:w-auto align-self-end w-full" />
+      </Form>
     </Panel>
 
     <!-- App Configuration Panel -->
@@ -59,6 +63,9 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { z } from 'zod'
+import { Form } from '@primevue/forms'
+import { zodResolver } from '@primevue/forms/resolvers/zod'
 import { auth } from '../services/firebase'
 import { updateProfile } from 'firebase/auth'
 import { usePrinterStore } from '../stores/printer'
@@ -71,6 +78,7 @@ import InputGroup from 'primevue/inputgroup'
 import InputGroupAddon from 'primevue/inputgroupaddon'
 import InputText from 'primevue/inputtext'
 import Button from 'primevue/button'
+import Message from 'primevue/message'
 import Toast from 'primevue/toast'
 
 const store = usePrinterStore()
@@ -78,28 +86,44 @@ const userStore = useUserStore()
 const toast = useToast()
 
 const email = ref('')
-const displayName = ref('')
 const backendIP = ref('')
 const loading = ref(false)
+
+const profileInitialValues = ref({
+  displayName: ''
+})
+
+const profileResolver = ref(
+  zodResolver(
+    z.object({
+      displayName: z
+        .string()
+        .trim()
+        .min(1, { message: 'El nombre es obligatorio' })
+        .max(30, { message: 'El nombre no puede superar los 30 caracteres' })
+    })
+  )
+)
 
 onMounted(() => {
   const user = auth.currentUser
   if (user) {
     email.value = user.email || ''
-    displayName.value = user.displayName || userStore.userName || ''
+    profileInitialValues.value.displayName = user.displayName || userStore.userName || ''
   }
   backendIP.value = store.backendUrl || localStorage.getItem('printer_monitor_backend_url') || ''
 })
 
-async function saveProfile() {
+async function onProfileSubmit({ valid, values }) {
+  if (!valid) return
   const user = auth.currentUser
   if (!user) return
-  
+
   loading.value = true
   try {
-    await updateProfile(user, { displayName: displayName.value })
-    await updateUser(user.uid, { displayName: displayName.value })
-    userStore.userName = displayName.value // Actualizamos el store manualmente
+    await updateProfile(user, { displayName: values.displayName })
+    await updateUser(user.uid, { displayName: values.displayName })
+    userStore.userName = values.displayName // Actualizamos el store manualmente
     toast.add({ severity: 'success', summary: 'Perfil guardado', detail: 'Tu perfil se ha actualizado correctamente.', life: 3000 })
   } catch (error) {
     console.error('Error actualizando perfil:', error)
