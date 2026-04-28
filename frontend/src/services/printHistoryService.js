@@ -11,11 +11,15 @@ export async function guardarRegistro(estado, captura, nombreArchivo) {
     const usuario = auth.currentUser
     if (!usuario) throw new Error('Usuario no autenticado')
 
-    // 1. Subimos la captura de pantalla a Firebase Storage
-    const nombreCaptura = `captura_${Date.now()}.jpg`
-    const ruta = `capturas/${usuario.uid}/${nombreCaptura}`
-    const referencia = storageRef(storage, ruta)
-    await uploadString(referencia, captura, 'data_url')
+    let ruta = null
+
+    // 1. Subimos la captura de pantalla a Firebase Storage solo si existe
+    if (captura && captura.startsWith('data:image')) {
+        const nombreCaptura = `captura_${Date.now()}.jpg`
+        ruta = `capturas/${usuario.uid}/${nombreCaptura}`
+        const referencia = storageRef(storage, ruta)
+        await uploadString(referencia, captura, 'data_url')
+    }
 
     // 2. Creamos el registro en la colección 'historial_impresiones' de Firestore
     await addDoc(collection(db, 'historial_impresiones'), {
@@ -48,10 +52,12 @@ export async function obtenerHistorial() {
         const datos = documento.data()
         let urlCaptura = ''
 
-        try {
-            urlCaptura = await getDownloadURL(storageRef(storage, datos.rutaCaptura))
-        } catch (e) {
-            console.error('[Historial] Error obteniendo URL de la captura:', e)
+        if (datos.rutaCaptura) {
+            try {
+                urlCaptura = await getDownloadURL(storageRef(storage, datos.rutaCaptura))
+            } catch (e) {
+                console.error('[Historial] Error obteniendo URL de la captura:', e)
+            }
         }
 
         registros.push({
@@ -74,10 +80,12 @@ export async function eliminarRegistro(registro) {
     // Borrar el documento de la base de datos
     await deleteDoc(doc(db, 'historial_impresiones', registro.id))
 
-    // Borrar la imagen de Storage (si falla no es crítico)
-    try {
-        await deleteObject(storageRef(storage, registro.rutaCaptura))
-    } catch (e) {
-        console.error('[Historial] Error eliminando captura de Storage:', e)
+    // Borrar la imagen de Storage solo si existe
+    if (registro.rutaCaptura) {
+        try {
+            await deleteObject(storageRef(storage, registro.rutaCaptura))
+        } catch (e) {
+            console.error('[Historial] Error eliminando captura de Storage:', e)
+        }
     }
 }

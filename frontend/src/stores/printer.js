@@ -132,12 +132,10 @@ export const usePrinterStore = defineStore('printer', () => {
         // Enviamos el comando de cancelar a OctoPrint
         enviarComando('cancel')
 
-        // Registramos la cancelación en el historial
+        // Registramos la cancelación en el historial, aunque no haya frame
         try {
-            if (frame) {
-                await guardarRegistro('cancelada', frame, nombreArchivo)
-                console.log('[Historial] Impresión cancelada registrada')
-            }
+            await guardarRegistro('cancelada', frame, nombreArchivo)
+            console.log('[Historial] Impresión cancelada registrada')
         } catch (e) {
             console.error('[Historial] Error registrando cancelación:', e)
         }
@@ -149,10 +147,8 @@ export const usePrinterStore = defineStore('printer', () => {
         const nombreArchivo = estado.value.job?.file || 'Desconocido'
 
         try {
-            if (frame) {
-                await guardarRegistro('error', frame, nombreArchivo)
-                console.log('[Historial] Impresión con error registrada')
-            }
+            await guardarRegistro('error', frame, nombreArchivo)
+            console.log('[Historial] Impresión con error registrada')
         } catch (e) {
             console.error('[Historial] Error registrando fallo:', e)
         }
@@ -259,10 +255,8 @@ export const usePrinterStore = defineStore('printer', () => {
                 const frame = ultimoFrame.value
                 const nombreArchivo = estado.value.job?.file || 'Desconocido'
                 try {
-                    if (frame) {
-                        await guardarRegistro('finalizada', frame, nombreArchivo)
-                        console.log('[Historial] Impresión finalizada registrada')
-                    }
+                    await guardarRegistro('finalizada', frame, nombreArchivo)
+                    console.log('[Historial] Impresión finalizada registrada')
                 } catch (e) {
                     console.error('[Historial] Error registrando finalización:', e)
                 }
