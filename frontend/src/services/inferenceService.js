@@ -1,114 +1,97 @@
-/**
- * Servicio de inferencia con ONNX Runtime Web.
- *
- * Carga un modelo YOLOv8 exportado en formato ONNX y lo ejecuta
- * directamente en el navegador usando WebAssembly. Recibe una imagen
- * en base64, la preprocesa a 640x640, ejecuta la inferencia y
- * devuelve si se detectaron errores de impresión.
- */
+// Servicio para el tratamiento de imagenes con nuestro modelo y ONNX
 import * as ort from 'onnxruntime-web'
 
-// Ruta CDN para los archivos WASM de ONNX Runtime
 ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/'
 
-// Estado del modelo
 let session = null
 let isInitializing = false
 
-// Configuración del modelo YOLOv8
-const MODEL_PATH = '/model/best.onnx'
-const INPUT_DIM = 640                // Tamaño de entrada del modelo (640x640)
-const CONFIDENCE_THRESHOLD = 0.4     // Umbral mínimo de confianza para considerar un error
+const RUTA_MODELO = '/model/best.onnx'
+const DIMENSION = 640
+const UMBRAL_CONFIANZA = 0.4
 
-/**
- * Carga el modelo ONNX en memoria. Solo se carga una vez.
- * Devuelve true si el modelo está listo, false si falló.
- */
+// Cargamos el modelo ONNX
 export async function initSession() {
     if (session) return true
-    if (isInitializing) return false
+    if (isInitializing) return false // Con esto garantizamos que no se cargue el modelo dos veces
 
     isInitializing = true
     try {
         console.log('[Inference] Cargando modelo YOLOv8 ONNX...')
-        session = await ort.InferenceSession.create(MODEL_PATH, {
+        session = await ort.InferenceSession.create(RUTA_MODELO, {
             executionProviders: ['wasm']
-        })
+        }) // Con esto cargamos el modelo usando WebAssembly, que nos 
+        // permite ejecutar el propio modelo en el navegador sin usar la GPU
         console.log('[Inference] Modelo cargado con éxito.')
         return true
-    } catch (e) {
+    }
+    catch (e) {
         console.error('[Inference] Error al cargar el modelo ONNX:', e)
         return false
-    } finally {
+    }
+    finally {
         isInitializing = false
     }
 }
 
-/**
- * Preprocesa una imagen base64 para el modelo YOLOv8:
- * 1. Carga la imagen en un canvas de 640x640
- * 2. Extrae los píxeles RGB
- * 3. Normaliza valores a [0, 1]
- * 4. Crea un tensor de forma [1, 3, 640, 640]
- */
-async function preprocessImage(base64Image) {
+// Procesamos la imagen
+async function processImage(imagen) {
     return new Promise((resolve, reject) => {
         const img = new Image()
         img.crossOrigin = 'Anonymous'
 
+        // Transformamos la imagen para que el modelo pueda procesarlas
         img.onload = () => {
-            // Dibujar imagen redimensionada en un canvas temporal
+            // Creamos un canvas y le dibujamos la imagen con el tamaño que espera el modelo
             const canvas = document.createElement('canvas')
-            canvas.width = INPUT_DIM
-            canvas.height = INPUT_DIM
+            canvas.width = DIMENSION
+            canvas.height = DIMENSION
             const ctx = canvas.getContext('2d')
-            ctx.drawImage(img, 0, 0, INPUT_DIM, INPUT_DIM)
+            ctx.drawImage(img, 0, 0, DIMENSION, DIMENSION)
 
-            // Extraer datos RGBA de los píxeles
-            const pixels = ctx.getImageData(0, 0, INPUT_DIM, INPUT_DIM).data
-            const totalPixels = INPUT_DIM * INPUT_DIM
+            // Obtenemos los pixeles de la imagen
+            const pixels = ctx.getImageData(0, 0, DIMENSION, DIMENSION).data
+            const totalPixels = DIMENSION * DIMENSION
 
-            // Convertir a Float32 en formato CHW (Canales, Alto, Ancho)
+            // Normalizamos la imagen y la transformamos a otro formato
             const float32Data = new Float32Array(3 * totalPixels)
             for (let i = 0; i < totalPixels; i++) {
-                float32Data[i] = pixels[i * 4] / 255.0                          // Canal R
-                float32Data[totalPixels + i] = pixels[i * 4 + 1] / 255.0        // Canal G
-                float32Data[2 * totalPixels + i] = pixels[i * 4 + 2] / 255.0    // Canal B
+                float32Data[i] = pixels[i * 4] / 255.0
+                float32Data[totalPixels + i] = pixels[i * 4 + 1] / 255.0
+                float32Data[2 * totalPixels + i] = pixels[i * 4 + 2] / 255.0
             }
 
+            // Devolvemos el tensor para que el modelo pueda procesarlo
             resolve(new ort.Tensor('float32', float32Data, [1, 3, INPUT_DIM, INPUT_DIM]))
         }
 
         img.onerror = reject
-        img.src = base64Image
+        img.src = imagen
     })
 }
 
-/**
- * Ejecuta la inferencia YOLOv8 sobre una imagen base64.
- * Devuelve { has_errors: bool, max_confidence: float }.
- */
-export async function detectErrorsYolov8(base64Image) {
-    // Asegurar que el modelo esté cargado
+// Ejecutamos el propio modelo sobre las imagenes para ver si hay algún error
+export async function deteccionErrores(imagen) {
     if (!session) {
-        await initSession()
+        await initSession() // Si no hay sesión, la cargamos
         if (!session) return { has_errors: false, max_confidence: 0 }
     }
 
     try {
-        // Preprocesar imagen → tensor
-        const tensor = await preprocessImage(base64Image)
+        const tensor = await processImage(imagen) // Obtenemos el tensor de la imagen que le pasemos
 
-        // Ejecutar el modelo
-        const inputName = session.inputNames[0]
-        const results = await session.run({ [inputName]: tensor })
+        // ONNX define nombres para las entradas y las salidas. Lo que hacemos 
+        // aqui es obtener el nombre de la entrada automaticamente del fichero .onnx
+        const inputName = session.inputNames[0] // Nombre de la entrada que 
+        const results = await session.run({ [inputName]: tensor }) // Ejecutamos el modelo
 
-        // Leer la salida del modelo: [1, numFeatures, numAnchors]
-        const output = results[session.outputNames[0]]
-        const numClasses = output.dims[1] - 4     // Las primeras 4 son coordenadas de caja
-        const numAnchors = output.dims[2]
+        const output = results[session.outputNames[0]] // Obtenemos la salida del modelo, al igual que haciamos con la entrada
 
-        // Buscar la confianza máxima entre todas las detecciones
+        const numClasses = output.dims[1] - 4 // Obtenemos el número de clases
+        const numAnchors = output.dims[2] // Obtenemos el número de anchors
+
+
+        // Recorremos todos los anchors y todas las clases para obtener la máxima confianza
         let maxConfidence = 0
         for (let a = 0; a < numAnchors; a++) {
             for (let c = 0; c < numClasses; c++) {
@@ -117,11 +100,12 @@ export async function detectErrorsYolov8(base64Image) {
             }
         }
 
-        return {
-            has_errors: maxConfidence > CONFIDENCE_THRESHOLD,
+        return { // Devolvemos el resultado de la inferencia
+            has_errors: maxConfidence > UMBRAL_CONFIANZA,
             max_confidence: maxConfidence,
         }
-    } catch (e) {
+    }
+    catch (e) {
         console.error('[Inference] Fallo al ejecutar inferencia:', e)
         return { has_errors: false, max_confidence: 0 }
     }

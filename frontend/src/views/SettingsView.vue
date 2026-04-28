@@ -4,7 +4,7 @@
       <h1 class="text-3xl font-bold text-white m-0">Configuración</h1>
     </div>
 
-    <!-- User Profile Panel -->
+    <!-- Perfil de Usuario -->
     <Panel class="shadow-4 mb-4">
       <template #header>
         <div class="text-xl font-semibold flex align-items-center gap-2">
@@ -36,7 +36,7 @@
       </Form>
     </Panel>
 
-    <!-- App Configuration Panel -->
+    <!-- Sistema Base -->
     <Panel class="shadow-4">
       <template #header>
         <div class="text-xl font-semibold flex align-items-center gap-2">
@@ -56,8 +56,6 @@
         <Button label="Actualizar Red" icon="pi pi-cloud-upload" severity="secondary" @click="saveSettings" class="mt-2 w-full md:w-auto align-self-end w-full" />
       </div>
     </Panel>
-    
-    <Toast />
   </div>
 </template>
 
@@ -72,14 +70,6 @@ import { usePrinterStore } from '../stores/printer'
 import { useUserStore } from '../stores/user'
 import { updateUser } from '../services/usersService'
 import { useToast } from 'primevue/usetoast'
-
-import Panel from 'primevue/panel'
-import InputGroup from 'primevue/inputgroup'
-import InputGroupAddon from 'primevue/inputgroupaddon'
-import InputText from 'primevue/inputtext'
-import Button from 'primevue/button'
-import Message from 'primevue/message'
-import Toast from 'primevue/toast'
 
 const store = usePrinterStore()
 const userStore = useUserStore()
@@ -123,7 +113,7 @@ async function onProfileSubmit({ valid, values }) {
   try {
     await updateProfile(user, { displayName: values.displayName })
     await updateUser(user.uid, { displayName: values.displayName })
-    userStore.userName = values.displayName // Actualizamos el store manualmente
+    userStore.userName = values.displayName
     toast.add({ severity: 'success', summary: 'Perfil guardado', detail: 'Tu perfil se ha actualizado correctamente.', life: 3000 })
   } catch (error) {
     console.error('Error actualizando perfil:', error)
@@ -136,7 +126,7 @@ async function onProfileSubmit({ valid, values }) {
 function saveSettings() {
   let url = backendIP.value.trim()
   url = url.replace(/^https?:\/\//, '')
-  store.onSettingsSaved(url)
+  store.guardarConfiguracion(url)
   toast.add({ severity: 'success', summary: 'Sistema Base guardado', detail: 'La ruta IP predeterminada ha sido actualizada.', life: 3000 })
 }
 </script>

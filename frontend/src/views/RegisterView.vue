@@ -1,6 +1,6 @@
+<!-- Lo mismo que el login pero utilizamos las funciones de registro de firebase -->
 <template>
   <div class="flex align-items-center justify-content-center" style="min-height: calc(100vh - 84px);">
-    <Toast />
     <div class="w-full px-3" style="max-width: 480px;">
       <Card class="bg-black-alpha-20 border-1 surface-border shadow-4">
         <template #content>
@@ -46,8 +46,7 @@
               <FloatLabel variant="in">
                 <IconField>
                   <InputIcon class="pi pi-lock" />
-                  <Password name="password" toggleMask :feedback="true" class="w-full"
-                    inputClass="w-full pl-5" />
+                  <Password name="password" toggleMask :feedback="true" class="w-full" inputClass="w-full pl-5" />
                 </IconField>
                 <label>Contraseña</label>
               </FloatLabel>
@@ -91,117 +90,74 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref } from 'vue'
 import { z } from 'zod'
 import { Form } from '@primevue/forms'
 import { zodResolver } from '@primevue/forms/resolvers/zod'
 import { useRouter } from 'vue-router'
-const router = useRouter()
-
-import InputText from 'primevue/inputtext'
-import Password from 'primevue/password'
-import Message from 'primevue/message'
-import Button from 'primevue/button'
-import Card from 'primevue/card'
-import FloatLabel from 'primevue/floatlabel'
-import IconField from 'primevue/iconfield'
-import InputIcon from 'primevue/inputicon'
-import Toast from 'primevue/toast'
 import { useToast } from 'primevue/usetoast'
+import { signUp } from '@/services/authService'
 
-
-import {
-    signUp,
-    subscribeToAuth
-} from '@/services/authService'
-
+const router = useRouter()
 const toast = useToast()
-const user = ref(null)
+
 const loading = ref(false)
 const registerError = ref('')
-let unsubscribe = null
 
 const initialValues = ref({
-    name: '',
-    email: '',
-    password: '',
-    confirmPassword: ''
+  name: '',
+  email: '',
+  password: '',
+  confirmPassword: ''
 })
 
 const resolver = ref(
-    zodResolver(
-        z.object({
-            name: z
-                .string()
-                .trim()
-                .min(1, { message: 'El nombre es obligatorio' })
-                .max(50, { message: 'El nombre no puede exceder 50 caracteres' }),
-            email: z
-                .string()
-                .trim()
-                .min(1, { message: 'El email es obligatorio' })
-                .email({ message: 'El email no es válido' }),
-            password: z
-                .string()
-                .min(6, { message: 'Mínimo 6 caracteres' })
-                .max(100, { message: 'Máximo 100 caracteres' }),
-            confirmPassword: z
-                .string()
-                .min(1, { message: 'Confirma tu contraseña' })
-        })
-            .refine((data) => data.password === data.confirmPassword, {
-                message: 'Las contraseñas no coinciden',
-                path: ['confirmPassword']
-            })
-    )
+  zodResolver(
+    z.object({
+      name: z
+        .string()
+        .trim()
+        .min(1, { message: 'El nombre es obligatorio' })
+        .max(50, { message: 'El nombre no puede exceder 50 caracteres' }),
+      email: z
+        .string()
+        .trim()
+        .min(1, { message: 'El email es obligatorio' })
+        .email({ message: 'El email no es válido' }),
+      password: z
+        .string()
+        .min(6, { message: 'Mínimo 6 caracteres' })
+        .max(100, { message: 'Máximo 100 caracteres' }),
+      confirmPassword: z
+        .string()
+        .min(1, { message: 'Confirma tu contraseña' })
+    })
+      .refine((data) => data.password === data.confirmPassword, {
+        message: 'Las contraseñas no coinciden',
+        path: ['confirmPassword']
+      })
+  )
 )
 
-const onFormSubmit = async ({ valid, values }) => {
-    if (!valid) return
+async function onFormSubmit({ valid, values }) {
+  if (!valid) return
 
-    loading.value = true
-    registerError.value = ''
-    try {
-        await signUp(values.email, values.password, values.name)
-
-        toast.add({
-            severity: 'success',
-            summary: 'Cuenta creada',
-            detail: `¡Bienvenido ${values.name}!`,
-            life: 3000
-        })
-
-        router.push('/monitor')
-    } catch (err) {
-        console.error('Error al registrarse', err)
-
-        let msg = 'Error en el registro'
-        if (err.code === 'auth/email-already-in-use') msg = 'El email ya está registrado'
-
-        toast.add({
-            severity: 'error',
-            summary: 'Error',
-            detail: msg,
-            life: 3000
-        })
-        registerError.value = msg
-    } finally {
-        loading.value = false
-    }
+  loading.value = true
+  registerError.value = ''
+  try {
+    await signUp(values.email, values.password, values.name)
+    toast.add({ severity: 'success', summary: 'Cuenta creada', detail: `¡Bienvenido ${values.name}!`, life: 3000 })
+    router.push('/monitor')
+  }
+  catch (err) {
+    console.error('Error al registrarse', err)
+    let msg = 'Error en el registro'
+    if (err.code === 'auth/email-already-in-use') msg = 'El email ya está registrado'
+    toast.add({ severity: 'error', summary: 'Error', detail: msg, life: 3000 })
+    registerError.value = msg
+  }
+  finally {
+    loading.value = false
+  }
 }
-
-onMounted(() => {
-    unsubscribe = subscribeToAuth((currentUser) => {
-        user.value = currentUser
-        if (currentUser) router.push('/monitor')
-    })
-})
-
-onUnmounted(() => {
-    if (unsubscribe) unsubscribe()
-})
 </script>
-
-<style scoped>
-/* All styling uses PrimeVue Card + PrimeFlex utilities — no custom CSS needed */
-</style>

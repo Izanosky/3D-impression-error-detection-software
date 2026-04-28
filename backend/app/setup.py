@@ -1,10 +1,3 @@
-"""
-Gestión de claves y validación de conexión con OctoPrint.
-
-Al arrancar la aplicación, esta clase comprueba que la URL y API key
-de OctoPrint estén configuradas y que la conexión funcione.
-Si faltan datos, los pide al usuario por consola.
-"""
 import os
 import time
 import getpass
@@ -16,27 +9,18 @@ class KeyManagement:
     """Gestiona la configuración de conexión con OctoPrint."""
 
     def __init__(self):
-        # Ruta al archivo de variables de entorno
         self.env_path = os.path.join(os.path.dirname(__file__), ".env.back.template")
         load_dotenv(dotenv_path=self.env_path)
-
-        # Leer valores actuales
         self.octoprint_url = os.getenv("OCTOPRINT_URL", "http://localhost")
         self.api_key = os.getenv("OCTOPRINT_API_KEY", "")
 
     def check_octoprint_url(self):
-        """Comprueba si la URL de OctoPrint está configurada."""
         return bool(self.octoprint_url)
 
     def check_api_key(self):
-        """Comprueba si la API key está configurada."""
         return bool(self.api_key)
 
     def check_connection(self, retries=5, delay=3):
-        """
-        Comprueba la conexión con OctoPrint.
-        Reintenta varias veces por si OctoPrint aún está arrancando.
-        """
         for attempt in range(1, retries + 1):
             try:
                 response = requests.get(
@@ -60,12 +44,7 @@ class KeyManagement:
         return False
 
     def validate_configuration(self):
-        """
-        Valida toda la configuración: URL, API key y conexión.
-        Pide los datos por consola si faltan y los guarda en .env.
-        Devuelve True si todo es correcto, False si no se pudo conectar.
-        """
-        # Pedir URL si falta
+        """Valida URL, API key y conexión. Pide datos por consola si faltan."""
         if not self.check_octoprint_url():
             while True:
                 new_url = input("URL de OctoPrint (ej: http://localhost): ").strip()
@@ -74,7 +53,6 @@ class KeyManagement:
                     break
                 print("La URL no puede estar vacía.")
 
-        # Pedir API key si falta
         if not self.check_api_key():
             while True:
                 new_key = getpass.getpass("API key de OctoPrint (Settings > API): ").strip()
@@ -83,7 +61,6 @@ class KeyManagement:
                     break
                 print("La API key no puede estar vacía.")
 
-        # Comprobar conexión
         print(f"Comprobando conexión con OctoPrint en {self.octoprint_url}...")
         if not self.check_connection():
             print("No se pudo conectar a OctoPrint. Verifica que:")
@@ -93,15 +70,11 @@ class KeyManagement:
 
         print("Conexión con OctoPrint validada correctamente.")
 
-        # Guardar valores en el archivo .env
         set_key(self.env_path, "OCTOPRINT_URL", self.octoprint_url)
         set_key(self.env_path, "OCTOPRINT_API_KEY", self.api_key)
-
-        # Recargar para que config.py vea los nuevos valores
         load_dotenv(dotenv_path=self.env_path, override=True)
 
         return True
 
 
-# Instancia global (usada en main.py al arrancar)
 key_management = KeyManagement()

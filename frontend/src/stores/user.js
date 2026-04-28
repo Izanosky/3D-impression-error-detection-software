@@ -1,6 +1,5 @@
-// src/stores/user.js
 import { defineStore } from 'pinia'
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref } from 'vue'
 import { subscribeToAuth } from '@/services/authService'
 import { getUserName } from '@/services/usersService'
 
@@ -9,14 +8,14 @@ export const useUserStore = defineStore('user', () => {
   const userName = ref('')
   let unsubscribe = null
 
-  const startAuthListener = () => {
+  function startAuthListener() {
     if (unsubscribe) return
     unsubscribe = subscribeToAuth(async (user) => {
       currentUser.value = user
       if (user) {
         try {
           const name = await getUserName(user.uid)
-          userName.value = name || user.email // Fallback to email if no name
+          userName.value = name || user.email
         } catch (e) {
           console.error('Error fetching user name:', e)
           userName.value = user.email
@@ -27,17 +26,13 @@ export const useUserStore = defineStore('user', () => {
     })
   }
 
-  const stopAuthListener = () => {
+  function stopAuthListener() {
     if (unsubscribe) unsubscribe()
     unsubscribe = null
   }
 
-  const usuarioLogueado = () => {
-    return currentUser.value !== null
-  }
+  // Iniciar el listener automáticamente al crear el store
+  startAuthListener()
 
-  onMounted(startAuthListener)
-  onUnmounted(stopAuthListener)
-
-  return { currentUser, userName, startAuthListener, stopAuthListener, usuarioLogueado }
+  return { currentUser, userName, startAuthListener, stopAuthListener }
 })

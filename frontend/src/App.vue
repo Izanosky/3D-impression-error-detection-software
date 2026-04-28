@@ -3,7 +3,7 @@
     <Toast />
     <ConfirmDialog />
     
-    <!-- Top Navigation Bar -->
+    <!-- Barra de navegación -->
     <Menubar :model="menuItems" class="border-none border-radius-0 border-bottom-1 surface-border sticky top-0 z-5 shadow-2">
       <template #start>
         <div class="flex align-items-center gap-2 mr-4 cursor-pointer" @click="router.push('/')">
@@ -56,37 +56,26 @@ import { usePrinterStore } from './stores/printer'
 import { useUserStore } from './stores/user'
 import { signOut } from './services/authService'
 
-import Toast from 'primevue/toast'
-import ConfirmDialog from 'primevue/confirmdialog'
-import Menubar from 'primevue/menubar'
-import Button from 'primevue/button'
-import Avatar from 'primevue/avatar'
-import TieredMenu from 'primevue/tieredmenu'
-
 const router = useRouter()
 const store = usePrinterStore()
 const userStore = useUserStore()
 
 const userMenuRef = ref(null)
 
-// Navigation menu items
 const menuItems = ref([
   { label: 'Inicio', icon: 'pi pi-home', route: '/' },
   { label: 'Sobre Nosotros', icon: 'pi pi-info-circle', route: '/about' },
   { label: 'Monitorización', icon: 'pi pi-desktop', route: '/monitor' },
-  { label: 'Biblioteca', icon: 'pi pi-video', route: '/timelapse' }
+  { label: 'Historial', icon: 'pi pi-history', route: '/history' }
 ])
 
-// User dropdown items
 const userMenuItems = ref([
   {
     label: 'Configuración',
     icon: 'pi pi-cog',
     command: () => router.push('/settings')
   },
-  {
-    separator: true
-  },
+  { separator: true },
   {
     label: 'Cerrar sesión',
     icon: 'pi pi-sign-out',
@@ -97,16 +86,16 @@ const userMenuItems = ref([
   }
 ])
 
-const toggleUserMenu = (event) => {
+function toggleUserMenu(event) {
   userMenuRef.value.toggle(event)
 }
 
 onMounted(() => {
-  store.init()
+  store.inicializar()
 })
 
 onUnmounted(() => {
-  store.disconnectWebSocket()
+  store.desconectarWebSocket()
 })
 </script>
 

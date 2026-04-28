@@ -6,14 +6,13 @@
       Monitorización de Impresión
     </h1>
 
-    <!-- Main Content (Accordions) -->
     <div class="flex flex-column gap-4">
 
-      <!-- Desplegable 1: Configuración -->
-      <Panel toggleable :collapsed="configCollapsed" @update:collapsed="configCollapsed = $event" class="shadow-4">
+      <!-- Panel de Configuración -->
+      <Panel toggleable :collapsed="configColapsado" @update:collapsed="configColapsado = $event" class="shadow-4">
         <template #header>
           <div class="text-xl font-semibold flex align-items-center gap-2 transition-colors duration-200"
-            :class="!configCollapsed ? 'text-primary' : 'text-white'">
+            :class="!configColapsado ? 'text-primary' : 'text-white'">
             <i class="pi pi-cog"></i> Configuración
           </div>
         </template>
@@ -29,23 +28,23 @@
             <div class="flex flex-column gap-2 bg-white-alpha-10 p-3 border-round">
               <div class="flex align-items-center justify-content-between">
                 <span class="font-medium text-base text-color-secondary">Backend</span>
-                <Tag :severity="store.wsConnected ? 'success' : 'danger'"
-                  :value="store.wsConnected ? 'Conectado' : 'Desconectado'" />
+                <Tag :severity="store.wsConectado ? 'success' : 'danger'"
+                  :value="store.wsConectado ? 'Conectado' : 'Desconectado'" />
               </div>
               <div class="flex align-items-center justify-content-between mt-1">
                 <span class="font-medium text-base text-color-secondary">Impresora</span>
-                <Tag :severity="store.status.connected ? 'success' : 'danger'"
-                  :value="store.status.connected ? 'Conectada' : 'Desconectada'" />
+                <Tag :severity="store.estado.connected ? 'success' : 'danger'"
+                  :value="store.estado.connected ? 'Conectada' : 'Desconectada'" />
               </div>
             </div>
 
             <div class="flex flex-column gap-1 mt-auto pt-2">
               <span class="text-xs font-semibold text-color-secondary uppercase">Conexión IP</span>
               <InputGroup>
-                <InputText v-model="ipAddress" placeholder="Ej: 192.168.1.100" class="bg-white-alpha-10 w-full"
-                  :disabled="store.isPrinting || store.isPaused" />
-                <Button label="Conectar" icon="pi pi-bolt" @click="updateIp"
-                  :disabled="store.isPrinting || store.isPaused || !ipAddress.trim()" />
+                <InputText v-model="direccionIp" placeholder="Ej: 192.168.1.100" class="bg-white-alpha-10 w-full"
+                  :disabled="store.estaImprimiendo || store.estaPausada" />
+                <Button label="Conectar" icon="pi pi-bolt" @click="actualizarIp"
+                  :disabled="store.estaImprimiendo || store.estaPausada || !direccionIp.trim()" />
               </InputGroup>
             </div>
           </div>
@@ -58,39 +57,39 @@
 
             <div class="flex flex-column gap-1">
               <span class="text-xs font-semibold text-color-secondary uppercase">Seleccionar Archivos</span>
-              <Select v-model="selectedFile" :options="store.gcodeFiles" optionLabel="name" optionValue="name"
+              <Select v-model="archivoSeleccionado" :options="store.archivosGcode" optionLabel="name" optionValue="name"
                 placeholder="Seleccionar archivo..." class="w-full"
-                :disabled="store.isPrinting || store.isPaused || store.uploading" @change="onFileChange" />
+                :disabled="store.estaImprimiendo || store.estaPausada || store.subiendo" @change="alCambiarArchivo" />
             </div>
 
             <div class="flex flex-column gap-1">
               <span class="text-xs font-semibold text-color-secondary uppercase">Subir Archivo</span>
-              <FileUpload mode="basic" auto customUpload @uploader="onFileUploadPrime" accept=".gcode,.gco,.g"
-                :chooseLabel="store.uploading ? 'Subiendo...' : 'Subir Archivo'"
-                :chooseIcon="store.uploading ? 'pi pi-spin pi-spinner' : 'pi pi-upload'"
-                :disabled="store.isPrinting || store.isPaused || store.uploading" class="w-full"
+              <FileUpload mode="basic" auto customUpload @uploader="alSubirArchivo" accept=".gcode,.gco,.g"
+                :chooseLabel="store.subiendo ? 'Subiendo...' : 'Subir Archivo'"
+                :chooseIcon="store.subiendo ? 'pi pi-spin pi-spinner' : 'pi pi-upload'"
+                :disabled="store.estaImprimiendo || store.estaPausada || store.subiendo" class="w-full"
                 pt:chooseButton="w-full p-button-secondary p-button-outlined" />
             </div>
 
             <div class="flex flex-column gap-2 mt-auto pt-4">
-              <Button v-if="!store.isPrinting && !store.isPaused" label="Iniciar Impresión" icon="pi pi-play"
-                :disabled="!store.hasFile || store.uploading" @click="store.startPrint" />
-              <Button v-else-if="store.isPrinting && !store.isPaused" label="Pausar Impresión" icon="pi pi-pause"
-                severity="warning" @click="store.pausePrint" />
-              <Button v-else label="Reanudar Impresión" icon="pi pi-play" @click="store.resumePrint" />
+              <Button v-if="!store.estaImprimiendo && !store.estaPausada" label="Iniciar Impresión" icon="pi pi-play"
+                :disabled="!store.tieneArchivo || store.subiendo" @click="store.iniciarImpresion" />
+              <Button v-else-if="store.estaImprimiendo && !store.estaPausada" label="Pausar Impresión" icon="pi pi-pause"
+                severity="warning" @click="store.pausarImpresion" />
+              <Button v-else label="Reanudar Impresión" icon="pi pi-play" @click="store.reanudarImpresion" />
               <Button label="Cancelar Impresión" icon="pi pi-times" severity="danger" outlined
-                :disabled="!store.isPrinting && !store.isPaused" @click="store.cancelPrint" />
+                :disabled="!store.estaImprimiendo && !store.estaPausada" @click="store.cancelarImpresion" />
             </div>
           </div>
 
         </div>
       </Panel>
 
-      <!-- Desplegable 2: Monitorización (Cámara y Estadísticas) -->
-      <Panel toggleable :collapsed="monitorCollapsed" @update:collapsed="monitorCollapsed = $event" class="shadow-4">
+      <!-- Panel de Seguimiento en Vivo -->
+      <Panel toggleable :collapsed="monitorColapsado" @update:collapsed="monitorColapsado = $event" class="shadow-4">
         <template #header>
           <div class="text-xl font-semibold flex align-items-center gap-2 transition-colors duration-200"
-            :class="!monitorCollapsed ? 'text-primary' : 'text-white'">
+            :class="!monitorColapsado ? 'text-primary' : 'text-white'">
             <i class="pi pi-video"></i> Seguimiento en Vivo
           </div>
         </template>
@@ -105,21 +104,21 @@
             <div
               class="relative w-full flex align-items-center justify-content-center bg-black overflow-hidden border-round-xl border-1 surface-border shadow-4 p-2"
               style="aspect-ratio: 16/9;">
-              <!-- MJPEG Stream -->
-              <img ref="cameraImg" v-if="store.streamUrl" :src="store.streamUrl" crossorigin="anonymous"
+              <!-- MJPEG Stream de la cámara -->
+              <img ref="imagenCamara" v-if="store.urlStream" :src="store.urlStream" crossorigin="anonymous"
                 alt="Vista de cámara" class="w-full h-full block border-round" style="object-fit: contain;"
-                @error="handleImageError" />
+                @error="alErrorImagen" />
               <div v-else
                 class="text-color-secondary text-xl flex flex-column align-items-center justify-content-center w-full h-full gap-3">
                 <i class="pi pi-camera" style="font-size: 4rem"></i>
                 <span>Cámara no disponible</span>
               </div>
 
-              <!-- Hidden Canvas for Inference -->
-              <canvas ref="captureCanvas" class="hidden"></canvas>
+              <!-- Canvas oculto para capturar frames de la cámara -->
+              <canvas ref="canvasCaptura" class="hidden"></canvas>
 
-              <!-- Detection Overlay -->
-              <div v-if="store.detections?.has_errors" class="absolute top-0 right-0 p-3 z-5">
+              <!-- Alerta de error detectado por la IA -->
+              <div v-if="store.detecciones?.has_errors" class="absolute top-0 right-0 p-3 z-5">
                 <Tag value="¡Error Detectado!" severity="danger" icon="pi pi-exclamation-triangle"
                   class="text-lg px-3 py-2 shadow-4 animate-pulse" />
               </div>
@@ -136,42 +135,40 @@
             <div class="flex flex-column gap-1 bg-white-alpha-10 p-3 border-round">
               <span class="text-color-secondary uppercase text-xs font-semibold">Archivo Actual</span>
               <span class="font-medium text-overflow-ellipsis overflow-hidden white-space-nowrap"
-                :title="store.status.job?.file">{{ store.status.job?.file || 'Ningún archivo' }}</span>
+                :title="store.estado.job?.file">{{ store.estado.job?.file || 'Ningún archivo' }}</span>
             </div>
 
             <div class="flex gap-3">
               <div
                 class="flex-1 flex flex-column align-items-center bg-white-alpha-10 p-3 border-round gap-1 justify-content-center">
                 <span class="text-color-secondary uppercase text-xs font-semibold text-center">Extrusor</span>
-                <span class="text-xl font-bold text-orange-400">{{ formatTemp(store.status.temperatures?.tool0?.actual)
+                <span class="text-xl font-bold text-orange-400">{{ formatearTemperatura(store.estado.temperatures?.tool0?.actual)
                   }}</span>
               </div>
               <div
                 class="flex-1 flex flex-column align-items-center bg-white-alpha-10 p-3 border-round gap-1 justify-content-center">
                 <span class="text-color-secondary uppercase text-xs font-semibold text-center">Cama Caliente</span>
-                <span class="text-xl font-bold text-red-400">{{ formatTemp(store.status.temperatures?.bed?.actual)
+                <span class="text-xl font-bold text-red-400">{{ formatearTemperatura(store.estado.temperatures?.bed?.actual)
                   }}</span>
               </div>
             </div>
 
             <div class="flex flex-column gap-3 bg-white-alpha-10 p-3 border-round mt-auto">
-              <!-- Progreso -->
               <div class="flex justify-content-between align-items-center">
                 <span class="text-color-secondary text-xs font-semibold uppercase">Progreso</span>
-                <span class="font-bold text-primary">{{ Math.round(store.status.progress?.completion || 0) }}%</span>
+                <span class="font-bold text-primary">{{ Math.round(store.estado.progress?.completion || 0) }}%</span>
               </div>
-              <ProgressBar :value="store.status.progress?.completion || 0" :showValue="false"
+              <ProgressBar :value="store.estado.progress?.completion || 0" :showValue="false"
                 style="height: 8px; margin-top: -8px;" />
 
-              <!-- Tiempos -->
               <div class="flex justify-content-between border-top-1 surface-border pt-2">
                 <div class="flex flex-column">
                   <span class="text-xs text-color-secondary">Transcurrido</span>
-                  <span class="font-mono font-medium">{{ formatTime(store.status.job?.time_elapsed) }}</span>
+                  <span class="font-mono font-medium">{{ formatearTiempo(store.estado.job?.time_elapsed) }}</span>
                 </div>
                 <div class="flex flex-column text-right">
                   <span class="text-xs text-color-secondary">Restante</span>
-                  <span class="font-mono font-medium">{{ formatTime(store.status.job?.time_remaining) }}</span>
+                  <span class="font-mono font-medium">{{ formatearTiempo(store.estado.job?.time_remaining) }}</span>
                 </div>
               </div>
             </div>
@@ -182,157 +179,157 @@
       </Panel>
 
     </div>
-    <Toast />
   </div>
 </template>
 
 <script setup>
 import { ref, watch, onMounted, onUnmounted } from 'vue'
 import { usePrinterStore } from '../stores/printer'
-import { detectErrorsYolov8 } from '../services/inferenceService'
+import { deteccionErrores } from '../services/inferenceService'
 import { useToast } from 'primevue/usetoast'
-
-import Panel from 'primevue/panel'
-import Tag from 'primevue/tag'
-import ProgressBar from 'primevue/progressbar'
-import Button from 'primevue/button'
-
-import Select from 'primevue/select'
-import InputText from 'primevue/inputtext'
-import InputGroup from 'primevue/inputgroup'
-import FileUpload from 'primevue/fileupload'
-import Toast from 'primevue/toast'
 
 const store = usePrinterStore()
 const toast = useToast()
 
-// Accordion Setup
-const configCollapsed = ref(false)
-const monitorCollapsed = ref(true)
+// Estado de los paneles colapsables
+const configColapsado = ref(false)
+const monitorColapsado = ref(true)
 
-watch(() => store.isPrinting, (newVal) => {
-  if (newVal) {
-    configCollapsed.value = true
-    monitorCollapsed.value = false
+// Abrir el panel de monitorización automáticamente al empezar a imprimir
+watch(() => store.estaImprimiendo, (imprimiendo) => {
+  if (imprimiendo) {
+    configColapsado.value = true
+    monitorColapsado.value = false
   }
 })
 
-const ipAddress = ref('')
-const selectedFile = ref('')
+const direccionIp = ref('')
+const archivoSeleccionado = ref('')
 
-// Camera & Inference Logic
-const cameraImg = ref(null)
-const captureCanvas = ref(null)
-let inferenceInterval = null
-let isProcessing = false
+// Referencias al elemento de la cámara y al canvas de captura
+const imagenCamara = ref(null)
+const canvasCaptura = ref(null)
+let intervaloInferencia = null
+let procesando = false
 
 onMounted(() => {
-  // Sync IP
-  ipAddress.value = store.backendUrl || localStorage.getItem('printer_monitor_backend_url') || ''
+  // Cargar la IP guardada
+  direccionIp.value = store.backendUrl || localStorage.getItem('printer_monitor_backend_url') || ''
 
-  // Setup inference loop
-  inferenceInterval = setInterval(async () => {
-    if (!cameraImg.value || !captureCanvas.value || !store.streamUrl || isProcessing) return
-    if (!store.isPrinting) return
+  // Bucle de inferencia: cada 2 segundos capturamos un frame de la cámara,
+  // lo guardamos como último frame y lo pasamos al modelo de IA para detectar errores
+  intervaloInferencia = setInterval(async () => {
+    // No hacer nada si no hay cámara, canvas, stream o ya estamos procesando
+    if (!imagenCamara.value || !canvasCaptura.value || !store.urlStream || procesando) return
+    // Solo ejecutar inferencia mientras se está imprimiendo
+    if (!store.estaImprimiendo) return
 
-    isProcessing = true
+    procesando = true
     try {
-      const videoEl = cameraImg.value
-      const canvasEl = captureCanvas.value
+      const imagen = imagenCamara.value
+      const canvas = canvasCaptura.value
 
-      canvasEl.width = videoEl.naturalWidth || 640
-      canvasEl.height = videoEl.naturalHeight || 480
+      // Ajustar el canvas al tamaño de la imagen de la cámara
+      canvas.width = imagen.naturalWidth || 640
+      canvas.height = imagen.naturalHeight || 480
+      if (canvas.width === 0 || canvas.height === 0) return
 
-      if (canvasEl.width === 0 || canvasEl.height === 0) return
+      // Dibujar el frame actual de la cámara en el canvas
+      const ctx = canvas.getContext('2d')
+      ctx.drawImage(imagen, 0, 0, canvas.width, canvas.height)
 
-      const ctx = canvasEl.getContext('2d')
-      ctx.drawImage(videoEl, 0, 0, canvasEl.width, canvasEl.height)
+      // Convertir el canvas a una imagen en formato data URL
+      const capturaDataUrl = canvas.toDataURL('image/jpeg', 0.8)
 
-      const captureDataUrl = canvasEl.toDataURL('image/jpeg', 0.8)
+      // Guardar el último frame en el store para que se use en el historial
+      store.ultimoFrame = capturaDataUrl
 
-      const result = await detectErrorsYolov8(captureDataUrl)
-      store.detections.has_errors = result.has_errors
+      // Ejecutar el modelo de IA sobre el frame capturado
+      const resultado = await deteccionErrores(capturaDataUrl)
+      store.detecciones.has_errors = resultado.has_errors
 
-      if (result.has_errors) {
-        console.warn('[Frontend-AI] Error detectado desde stream local, auto-cancelando impresión...')
-        store.cancelPrint()
-        store.autoCancelledMessage = 'Impresión cancelada automáticamente por detección de errores (Inferencia Local).'
+      // Si la IA detecta un error, registrarlo y cancelar la impresión
+      if (resultado.has_errors) {
+        console.warn('[IA] Error detectado, cancelando impresión...')
+        await store.registrarError()
+        store.enviarComando('cancel')
+        store.mensajeCancelacionAuto = 'Impresión cancelada automáticamente por detección de errores (Inferencia Local).'
       }
     } catch (err) {
-      console.error('[Frontend-AI] Error capturando frame de stream:', err)
+      console.error('[IA] Error capturando frame:', err)
     } finally {
-      isProcessing = false
+      procesando = false
     }
   }, 2000)
 })
 
+// Limpiar el intervalo de inferencia al desmontar el componente
 onUnmounted(() => {
-  if (inferenceInterval) clearInterval(inferenceInterval)
+  if (intervaloInferencia) clearInterval(intervaloInferencia)
 })
 
-function handleImageError(e) {
+// Manejar error de carga de la imagen de la cámara
+function alErrorImagen(e) {
   e.target.style.display = 'none'
-  const container = e.target.parentElement
-  if (container) {
-    const fallback = container.querySelector('.text-color-secondary')
+  const contenedor = e.target.parentElement
+  if (contenedor) {
+    const fallback = contenedor.querySelector('.text-color-secondary')
     if (fallback) fallback.style.display = 'flex'
   }
 }
 
-// Watchers
-watch(() => store.backendUrl, (newUrl) => {
-  if (newUrl) ipAddress.value = newUrl
+// Sincronizar la IP del input con la del store
+watch(() => store.backendUrl, (nuevaUrl) => {
+  if (nuevaUrl) direccionIp.value = nuevaUrl
 })
 
-watch(() => store.status.job?.file, (val) => {
-  if (val && val !== 'Sin archivo') {
-    selectedFile.value = val
+// Sincronizar el archivo seleccionado con el que tiene OctoPrint
+watch(() => store.estado.job?.file, (archivo) => {
+  if (archivo && archivo !== 'Sin archivo') {
+    archivoSeleccionado.value = archivo
   }
 }, { immediate: true })
 
-watch(() => store.autoCancelledMessage, (message) => {
-  if (message) {
-    toast.add({ severity: 'error', summary: 'Impresión cancelada', detail: message, life: 5000 })
-    store.clearAutoCancelledMessage()
+// Mostrar un toast cuando se cancela automáticamente por error
+watch(() => store.mensajeCancelacionAuto, (mensaje) => {
+  if (mensaje) {
+    toast.add({ severity: 'error', summary: 'Impresión cancelada', detail: mensaje, life: 5000 })
+    store.limpiarMensajeCancelacion()
   }
 })
 
-// Methods
-async function updateIp() {
-  let url = ipAddress.value.trim()
+// Actualizar la IP del backend y reconectar
+async function actualizarIp() {
+  let url = direccionIp.value.trim()
   if (!url) return
   url = url.replace(/^https?:\/\//, '')
-  store.onSettingsSaved(url)
-  await store.connect()
+  store.guardarConfiguracion(url)
+  await store.conectar()
 }
 
-function onFileUploadPrime(event) {
-  const file = event.files[0]
-  if (file) {
-    store.uploadGcode(file)
-  }
+// Subir un archivo .gcode al servidor
+function alSubirArchivo(event) {
+  const archivo = event.files[0]
+  if (archivo) store.subirGcode(archivo)
 }
 
-function onFileChange(event) {
-  if (event.value) {
-    store.selectFile(event.value)
-  }
+// Al cambiar el archivo seleccionado en el dropdown
+function alCambiarArchivo(event) {
+  if (event.value) store.seleccionarArchivo(event.value)
 }
 
-function formatTemp(temp) {
+// Formatea una temperatura numérica a texto con unidades
+function formatearTemperatura(temp) {
   if (temp === undefined || temp === null) return '-- °C'
   return `${Math.round(temp)} °C`
 }
 
-function formatTime(seconds) {
-  if (!seconds || isNaN(seconds)) return '--:--'
-  const h = Math.floor(seconds / 3600)
-  const m = Math.floor((seconds % 3600) / 60)
+// Formatea segundos a un formato legible (ej: "2h 15m" o "05m")
+function formatearTiempo(segundos) {
+  if (!segundos || isNaN(segundos)) return '--:--'
+  const h = Math.floor(segundos / 3600)
+  const m = Math.floor((segundos % 3600) / 60)
   const pad = (n) => n.toString().padStart(2, '0')
   return h > 0 ? `${h}h ${pad(m)}m` : `${pad(m)}m`
 }
 </script>
-
-<style scoped>
-/* Scoped overrides if needed, relying mostly on PrimeFlex styling */
-</style>

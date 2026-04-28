@@ -1,188 +1,143 @@
 <template>
   <div class="flex flex-column p-4 md:p-6 mx-auto w-full gap-4" style="max-width: 960px;">
     <main class="flex flex-column gap-4 w-full">
+
+      <!-- Cabecera -->
       <div class="flex align-items-center justify-content-between flex-wrap gap-3">
         <h1 class="text-3xl font-bold text-white m-0 flex align-items-center gap-3">
-          <i class="pi pi-video text-primary-400 text-3xl"></i>
-          Biblioteca de Timelapses
+          <i class="pi pi-history text-primary-400 text-3xl"></i>
+          Historial de Impresiones
         </h1>
         <div class="flex gap-2">
-          <Button label="Actualizar" icon="pi pi-refresh" severity="secondary" outlined :loading="loading" @click="fetchTimelapses" />
+          <Button label="Actualizar" icon="pi pi-refresh" severity="secondary" outlined :loading="cargando" @click="cargarHistorial" />
         </div>
       </div>
 
-      <!-- Loading State -->
-      <div v-if="loading && timelapses.length === 0" class="flex flex-column align-items-center justify-content-center p-6 bg-black-alpha-20 border-round-xl border-1 surface-border">
+      <!-- Estado: Cargando -->
+      <div v-if="cargando && registros.length === 0" class="flex flex-column align-items-center justify-content-center p-6 bg-black-alpha-20 border-round-xl border-1 surface-border">
         <i class="pi pi-spin pi-spinner text-primary text-5xl mb-3"></i>
-        <p class="text-color-secondary m-0">Cargando timelapses...</p>
+        <p class="text-color-secondary m-0">Cargando historial...</p>
       </div>
 
-      <!-- Error State -->
-      <div v-else-if="error" class="flex flex-column align-items-center justify-content-center p-6 bg-black-alpha-20 border-round-xl border-1 surface-border">
+      <!-- Estado: Error -->
+      <div v-else-if="mensajeError" class="flex flex-column align-items-center justify-content-center p-6 bg-black-alpha-20 border-round-xl border-1 surface-border">
         <i class="pi pi-exclamation-triangle text-orange-400 text-5xl mb-3"></i>
-        <p class="text-color-secondary m-0 mb-3">{{ error }}</p>
-        <Button label="Reintentar" icon="pi pi-refresh" @click="fetchTimelapses" />
+        <p class="text-color-secondary m-0 mb-3">{{ mensajeError }}</p>
+        <Button label="Reintentar" icon="pi pi-refresh" @click="cargarHistorial" />
       </div>
 
-      <!-- Empty State -->
-      <div v-else-if="timelapses.length === 0" class="flex flex-column align-items-center justify-content-center p-6 bg-black-alpha-20 border-round-xl border-1 surface-border">
-        <i class="pi pi-video text-color-secondary text-5xl mb-3 opacity-50"></i>
-        <p class="text-color m-0 text-lg">No hay timelapses disponibles</p>
-        <p class="text-color-secondary m-0 text-sm mt-1">Los timelapses de tus impresiones aparecerán aquí</p>
+      <!-- Estado: Sin registros -->
+      <div v-else-if="registros.length === 0" class="flex flex-column align-items-center justify-content-center p-6 bg-black-alpha-20 border-round-xl border-1 surface-border">
+        <i class="pi pi-history text-color-secondary text-5xl mb-3 opacity-50"></i>
+        <p class="text-color m-0 text-lg">No hay impresiones registradas</p>
+        <p class="text-color-secondary m-0 text-sm mt-1">El historial de tus impresiones aparecerá aquí</p>
       </div>
 
-      <!-- Timelapse Grid -->
-      <div v-else class="grid">
-        <div v-for="tl in timelapses" :key="tl.name" class="col-12 md:col-6 lg:col-4 xl:col-3">
-          <Card class="bg-black-alpha-20 border-1 surface-border shadow-4 h-full flex flex-column hover:-translate-y-1 transition-transform transition-duration-200 cursor-pointer" @click="openPlayer(tl)" :pt="{ body: { class: 'p-0 flex-grow-1 flex flex-column' }, content: { class: 'p-0 flex-grow-1 flex flex-column' } }">
-            <template #content>
-              <!-- Thumbnail / Preview -->
-              <div class="relative h-10rem bg-primary-reverse flex align-items-center justify-content-center border-round-top overflow-hidden bg-black-alpha-50 group">
-                <i class="pi pi-play-circle text-5xl text-white-alpha-50 hover:text-white transition-colors"></i>
-                <div class="absolute top-0 right-0 m-2">
-                  <Tag :value="getExtension(tl.name)" severity="info" class="bg-black-alpha-50 font-bold" />
-                </div>
-              </div>
+      <!-- Lista de registros -->
+      <div v-else class="flex flex-column gap-3">
+        <div
+          v-for="registro in registros"
+          :key="registro.id"
+          class="flex align-items-center gap-4 p-3 bg-black-alpha-20 border-round-xl border-1 surface-border shadow-2 hover:shadow-4 transition-all transition-duration-200"
+        >
+          <!-- Miniatura de la captura -->
+          <div class="flex-shrink-0 border-round overflow-hidden bg-black-alpha-50" style="width: 100px; height: 75px;">
+            <img
+              v-if="registro.urlCaptura"
+              :src="registro.urlCaptura"
+              alt="Último frame capturado"
+              class="w-full h-full block"
+              style="object-fit: cover;"
+            />
+            <div v-else class="w-full h-full flex align-items-center justify-content-center">
+              <i class="pi pi-image text-color-secondary text-2xl opacity-50"></i>
+            </div>
+          </div>
 
-              <!-- Info -->
-              <div class="p-3 flex flex-column gap-2 flex-grow-1">
-                <span class="font-semibold text-overflow-ellipsis overflow-hidden white-space-nowrap" :title="tl.name">{{ tl.name }}</span>
-                <div class="flex align-items-center gap-3 text-xs text-color-secondary">
-                  <span v-if="tl.size" class="flex align-items-center gap-1"><i class="pi pi-file"></i> {{ formatSize(tl.size) }}</span>
-                  <span v-if="tl.date" class="flex align-items-center gap-1"><i class="pi pi-calendar"></i> {{ tl.date }}</span>
-                </div>
-              </div>
+          <!-- Información del registro -->
+          <div class="flex flex-column gap-1 flex-grow-1 min-w-0">
+            <!-- Etiqueta de estado -->
+            <div class="flex align-items-center gap-2">
+              <Tag
+                :value="etiquetaEstado(registro.estado)"
+                :severity="severidadEstado(registro.estado)"
+                :icon="iconoEstado(registro.estado)"
+                class="font-semibold"
+              />
+            </div>
 
-              <!-- Actions -->
-              <div class="flex border-top-1 surface-border">
-                <Button icon="pi pi-download" class="flex-1 border-radius-0 border-none p-3" severity="secondary" text @click.stop="downloadTimelapse(tl)" v-tooltip="'Descargar'" />
-                <div class="border-left-1 surface-border"></div>
-                <Button icon="pi pi-trash" class="flex-1 border-radius-0 border-none p-3 hover:text-red-400" severity="secondary" text @click.stop="confirmDelete(tl)" v-tooltip="'Eliminar'" />
-              </div>
-            </template>
-          </Card>
+            <!-- Nombre del archivo .gcode -->
+            <span class="font-medium text-color text-overflow-ellipsis overflow-hidden white-space-nowrap" :title="registro.nombreArchivo">
+              {{ registro.nombreArchivo }}
+            </span>
+
+            <!-- Fecha de finalización -->
+            <div class="flex align-items-center gap-1 text-color-secondary text-sm">
+              <i class="pi pi-calendar text-xs"></i>
+              <span>{{ formatearFecha(registro.fechaFin) }}</span>
+            </div>
+          </div>
+
+          <!-- Botón para eliminar el registro -->
+          <Button
+            icon="pi pi-trash"
+            severity="danger"
+            text
+            rounded
+            class="flex-shrink-0"
+            v-tooltip="'Eliminar registro'"
+            @click="confirmarEliminacion(registro)"
+          />
         </div>
       </div>
 
-      <!-- Video Player Dialog -->
-      <Dialog v-model:visible="playerVisible" modal :header="currentTimelapse?.name" :style="{ width: '80vw', maxWidth: '900px' }" :breakpoints="{ '960px': '90vw' }" @hide="onPlayerHide">
-        <video
-          ref="videoPlayer"
-          :src="currentVideoUrl"
-          controls
-          autoplay
-          class="w-full border-round bg-black"
-        ></video>
-      </Dialog>
     </main>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { usePrinterStore } from '../stores/printer'
+import { ref, onMounted } from 'vue'
 import { useUserStore } from '../stores/user'
-import { db, storage } from '../services/firebase'
-import { collection, query, where, getDocs, deleteDoc, doc } from 'firebase/firestore'
-import { ref as storageRef, getDownloadURL, deleteObject } from 'firebase/storage'
+import { obtenerHistorial, eliminarRegistro } from '../services/printHistoryService'
 import { useConfirm } from 'primevue/useconfirm'
 
-import Button from 'primevue/button'
-import Card from 'primevue/card'
-import Tag from 'primevue/tag'
-import Dialog from 'primevue/dialog'
-
-const store = usePrinterStore()
 const userStore = useUserStore()
 const confirm = useConfirm()
 
-const timelapses = ref([])
-const loading = ref(false)
-const error = ref(null)
+// Estado del componente
+const registros = ref([])
+const cargando = ref(false)
+const mensajeError = ref(null)
 
-const playerVisible = ref(false)
-const currentTimelapse = ref(null)
-const videoPlayer = ref(null)
-
-const currentVideoUrl = computed(() => {
-  if (!currentTimelapse.value || !currentTimelapse.value.storagePath) return ''
-  return currentTimelapse.value.downloadUrl || ''
-})
-
+// Al montar el componente, cargamos el historial
 onMounted(() => {
-  fetchTimelapses()
+  cargarHistorial()
 })
 
-async function fetchTimelapses() {
+// Carga todos los registros del historial desde Firebase
+async function cargarHistorial() {
   if (!userStore.currentUser) {
-    error.value = 'Usuario no autenticado'
+    mensajeError.value = 'Usuario no autenticado'
     return
   }
 
-  loading.value = true
-  error.value = null
+  cargando.value = true
+  mensajeError.value = null
 
   try {
-    const q = query(
-      collection(db, 'videos'),
-      where('userId', '==', userStore.currentUser.uid)
-    )
-    const querySnapshot = await getDocs(q)
-    const videos = []
-    for (const docSnap of querySnapshot.docs) {
-      const data = docSnap.data()
-      const videoData = {
-        id: docSnap.id,
-        name: data.name,
-        size: data.size,
-        date: data.date,
-        storagePath: data.storagePath,
-        userId: data.userId
-      }
-      
-      try {
-        const url = await getDownloadURL(storageRef(storage, data.storagePath))
-        videoData.downloadUrl = url
-      } catch (e) {
-        console.error('Error getting download URL:', e)
-        videoData.downloadUrl = ''
-      }
-      videos.push(videoData)
-    }
-    timelapses.value = videos
+    registros.value = await obtenerHistorial()
   } catch (e) {
-    error.value = 'Error al cargar los videos. Verifica tu conexión.'
-    console.error('Error fetching videos:', e)
+    mensajeError.value = 'Error al cargar el historial. Verifica tu conexión.'
+    console.error('[Historial] Error:', e)
   } finally {
-    loading.value = false
+    cargando.value = false
   }
 }
 
-function openPlayer(tl) {
-  currentTimelapse.value = tl
-  playerVisible.value = true
-}
-
-function onPlayerHide() {
-  if (videoPlayer.value) {
-    videoPlayer.value.pause()
-  }
-  currentTimelapse.value = null
-}
-
-async function downloadTimelapse(tl) {
-  if (!tl.downloadUrl) return
-  const a = document.createElement('a')
-  a.href = tl.downloadUrl
-  a.download = tl.name
-  document.body.appendChild(a)
-  a.click()
-  document.body.removeChild(a)
-}
-
-function confirmDelete(tl) {
+// Muestra un diálogo de confirmación antes de eliminar un registro
+function confirmarEliminacion(registro) {
   confirm.require({
-    message: `¿Estás seguro de que quieres eliminar ${tl.name}?`,
+    message: '¿Estás seguro de que quieres eliminar este registro del historial?',
     header: 'Confirmar eliminación',
     icon: 'pi pi-exclamation-triangle',
     acceptLabel: 'Eliminar',
@@ -190,30 +145,68 @@ function confirmDelete(tl) {
     rejectLabel: 'Cancelar',
     accept: async () => {
       try {
-        await deleteDoc(doc(db, 'videos', tl.id))
-        await deleteObject(storageRef(storage, tl.storagePath))
-        timelapses.value = timelapses.value.filter(t => t.id !== tl.id)
+        await eliminarRegistro(registro)
+        // Quitar el registro de la lista local sin recargar todo
+        registros.value = registros.value.filter(r => r.id !== registro.id)
       } catch (e) {
-        console.error('Error deleting video:', e)
+        console.error('[Historial] Error eliminando registro:', e)
       }
     }
   })
 }
 
-function formatSize(bytes) {
-  if (!bytes) return ''
-  if (bytes < 1024) return bytes + ' B'
-  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
-  if (bytes < 1024 * 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
-  return (bytes / (1024 * 1024 * 1024)).toFixed(2) + ' GB'
+// ─── Helpers para mostrar el estado de cada registro ──────────────
+
+// Devuelve el texto de la etiqueta según el estado
+function etiquetaEstado(estado) {
+  const etiquetas = {
+    finalizada: 'Finalizada',
+    cancelada: 'Cancelada',
+    error: 'Error'
+  }
+  return etiquetas[estado] || estado
 }
 
-function getExtension(name) {
-  const parts = name.split('.')
-  return parts.length > 1 ? parts.pop().toUpperCase() : 'VIDEO'
+// Devuelve el color/severidad de PrimeVue según el estado
+function severidadEstado(estado) {
+  const severidades = {
+    finalizada: 'success',
+    cancelada: 'warn',
+    error: 'danger'
+  }
+  return severidades[estado] || 'secondary'
+}
+
+// Devuelve el icono según el estado
+function iconoEstado(estado) {
+  const iconos = {
+    finalizada: 'pi pi-check-circle',
+    cancelada: 'pi pi-ban',
+    error: 'pi pi-exclamation-triangle'
+  }
+  return iconos[estado] || 'pi pi-info-circle'
+}
+
+// Formatea un Timestamp de Firestore a una fecha legible en español
+function formatearFecha(timestamp) {
+  if (!timestamp) return 'Fecha desconocida'
+
+  // Firestore Timestamp tiene .toDate(), pero también puede venir como objeto con seconds
+  let fecha
+  if (timestamp.toDate) {
+    fecha = timestamp.toDate()
+  } else if (timestamp.seconds) {
+    fecha = new Date(timestamp.seconds * 1000)
+  } else {
+    fecha = new Date(timestamp)
+  }
+
+  return fecha.toLocaleString('es-ES', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
 }
 </script>
-
-<style scoped>
-/* Relying mostly on PrimeFlex classes incorporated above */
-</style>

@@ -19,8 +19,8 @@ const routes = [
         component: () => import('../views/AboutView.vue')
     },
     {
-        path: '/timelapse',
-        name: 'timelapse',
+        path: '/history',
+        name: 'history',
         component: () => import('../views/TimelapseView.vue'),
         meta: { requiresAuth: true }
     },

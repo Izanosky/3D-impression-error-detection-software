@@ -1,7 +1,7 @@
 <template>
   <div class="flex flex-column p-4 md:p-6 mx-auto w-full gap-6" style="max-width: 960px;">
 
-    <!-- Hero Section -->
+    <!-- Hero -->
     <section class="flex flex-column align-items-center text-center gap-4 py-6 w-full mx-auto" style="max-width: 600px;">
       <Avatar icon="pi pi-desktop" class="border-round-xl shadow-4 flex align-items-center justify-content-center" style="width: 80px; height: 80px; font-size: 2.5rem; background: var(--p-green-400); color: #000;" />
 
@@ -20,7 +20,7 @@
       </div>
     </section>
 
-    <!-- Features Section -->
+    <!-- Características -->
     <section class="flex flex-column gap-4 w-full">
       <h2 class="text-2xl font-bold text-center text-white m-0">Características</h2>
       
@@ -45,10 +45,6 @@
 </template>
 
 <script setup>
-import Button from 'primevue/button'
-import Avatar from 'primevue/avatar'
-import Card from 'primevue/card'
-
 const features = [
   {
     icon: 'pi pi-camera',

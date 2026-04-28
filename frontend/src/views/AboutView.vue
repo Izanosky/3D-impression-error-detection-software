@@ -6,7 +6,7 @@
       <p class="text-base text-color-secondary m-0">Trabajo de Fin de Grado — Detección de errores en impresión 3D</p>
     </section>
 
-    <!-- Project Description -->
+    <!-- Descripción -->
     <Card class="border-1 surface-border shadow-4">
       <template #content>
         <div class="flex align-items-center gap-3 mb-2">
@@ -22,7 +22,7 @@
       </template>
     </Card>
 
-    <!-- Tech Stack -->
+    <!-- Stack Tecnológico -->
     <div class="flex flex-column gap-3">
       <h2 class="text-xl font-bold text-white m-0 text-center">Stack Tecnológico</h2>
       <div class="grid">
@@ -39,7 +39,7 @@
       </div>
     </div>
 
-    <!-- Author -->
+    <!-- Autor -->
     <Card class="border-1 surface-border shadow-4 text-center mt-3">
       <template #content>
         <div class="flex align-items-center justify-content-center gap-3">
@@ -53,9 +53,6 @@
 </template>
 
 <script setup>
-import Avatar from 'primevue/avatar'
-import Card from 'primevue/card'
-
 const techStack = [
   { name: 'Vue.js 3', icon: 'pi pi-globe' },
   { name: 'FastAPI', icon: 'pi pi-bolt' },

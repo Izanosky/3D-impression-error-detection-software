@@ -1,9 +1,4 @@
-/**
- * Servicio de usuarios.
- *
- * Operaciones CRUD sobre la colección "users" de Firestore:
- * crear, buscar por email/UID, obtener nombre y actualizar perfil.
- */
+// Logica de gestion de los usuarios en Firebase
 import { db } from './firebase'
 import {
   collection,
@@ -17,28 +12,26 @@ import {
 } from 'firebase/firestore'
 import { getCurrentUserUUID } from './authService'
 
-// Referencia a la colección "users"
 const colRef = collection(db, 'users')
 
-/** Crea un nuevo documento de usuario en Firestore. */
 export const addUser = (data) =>
   addDoc(colRef, { ...data, Uid: getCurrentUserUUID(), createdAt: serverTimestamp() })
 
-/** Busca un usuario por su email. Devuelve el documento o null. */
+// Obtener usuario por email
 export const getUserByMail = async (email) => {
   const q = query(colRef, where('email', '==', email))
   const snapshot = await getDocs(q)
   return snapshot.empty ? null : { id: snapshot.docs[0].id, ...snapshot.docs[0].data() }
 }
 
-/** Busca un usuario por su UID de Firebase Auth. Devuelve el documento o null. */
+// Obtener usuario por Uid
 export const getUserByUid = async (uid) => {
   const q = query(colRef, where('Uid', '==', uid))
   const snapshot = await getDocs(q)
   return snapshot.empty ? null : { id: snapshot.docs[0].id, ...snapshot.docs[0].data() }
 }
 
-/** Obtiene el nombre del usuario dado su UID (o el del usuario actual). */
+// Obtener nombre de usuario
 export const getUserName = async (uid = null) => {
   const uuid = uid || getCurrentUserUUID()
   const q = query(colRef, where('Uid', '==', uuid))
@@ -49,7 +42,7 @@ export const getUserName = async (uid = null) => {
   return null
 }
 
-/** Actualiza los datos de un usuario buscándolo por UID. */
+// Actualizacion de los datos de un usuario
 export const updateUser = async (uid, data) => {
   const q = query(colRef, where('Uid', '==', uid))
   const snapshot = await getDocs(q)
