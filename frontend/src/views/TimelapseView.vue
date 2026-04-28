@@ -34,47 +34,63 @@
       </div>
 
       <!-- Lista de registros -->
-      <div v-else class="flex flex-column gap-3">
-        <div
-          v-for="registro in registros"
-          :key="registro.id"
-          class="flex align-items-center gap-4 p-3 bg-black-alpha-20 border-round-xl border-1 surface-border shadow-2 hover:shadow-4 transition-all transition-duration-200"
+      <div v-else class="card bg-black-alpha-20 border-round-xl border-1 surface-border p-3">
+        <DataTable
+          :value="registros"
+          paginator
+          :rows="10"
+          :rowsPerPageOptions="[5, 10, 25, 50]"
+          responsiveLayout="stack"
+          breakpoint="960px"
+          stripedRows
+          class="p-datatable-sm"
+          emptyMessage="No se encontraron registros en el historial."
         >
-          <!-- Información del registro -->
-          <div class="flex flex-column gap-1 flex-grow-1 min-w-0">
-            <!-- Etiqueta de estado -->
-            <div class="flex align-items-center gap-2">
+          <!-- Columna Estado -->
+          <Column field="estado" header="Estado" sortable style="width: 15%; min-width: 120px;">
+            <template #body="{ data }">
               <Tag
-                :value="etiquetaEstado(registro.estado)"
-                :severity="severidadEstado(registro.estado)"
-                :icon="iconoEstado(registro.estado)"
+                :value="etiquetaEstado(data.estado)"
+                :severity="severidadEstado(data.estado)"
+                :icon="iconoEstado(data.estado)"
                 class="font-semibold"
               />
-            </div>
+            </template>
+          </Column>
 
-            <!-- Nombre del archivo .gcode -->
-            <span class="font-medium text-color text-overflow-ellipsis overflow-hidden white-space-nowrap" :title="registro.nombreArchivo">
-              {{ registro.nombreArchivo }}
-            </span>
+          <!-- Columna Archivo -->
+          <Column field="nombreArchivo" header="Archivo" sortable style="width: 50%; min-width: 250px;">
+            <template #body="{ data }">
+              <span class="font-medium text-color block text-overflow-ellipsis overflow-hidden white-space-nowrap" style="max-width: 100%;" :title="data.nombreArchivo">
+                {{ data.nombreArchivo }}
+              </span>
+            </template>
+          </Column>
 
-            <!-- Fecha de finalización -->
-            <div class="flex align-items-center gap-1 text-color-secondary text-sm">
-              <i class="pi pi-calendar text-xs"></i>
-              <span>{{ formatearFecha(registro.fechaFin) }}</span>
-            </div>
-          </div>
+          <!-- Columna Fecha -->
+          <Column field="fechaFin" header="Fecha" sortable style="width: 25%; min-width: 180px;">
+            <template #body="{ data }">
+              <div class="flex align-items-center gap-2 text-color-secondary text-sm">
+                <i class="pi pi-calendar text-xs"></i>
+                <span>{{ formatearFecha(data.fechaFin) }}</span>
+              </div>
+            </template>
+          </Column>
 
-          <!-- Botón para eliminar el registro -->
-          <Button
-            icon="pi pi-trash"
-            severity="danger"
-            text
-            rounded
-            class="flex-shrink-0"
-            v-tooltip="'Eliminar registro'"
-            @click="confirmarEliminacion(registro)"
-          />
-        </div>
+          <!-- Columna Acciones -->
+          <Column header="" style="width: 10%; min-width: 80px; text-align: center;">
+            <template #body="{ data }">
+              <Button
+                icon="pi pi-trash"
+                severity="danger"
+                text
+                rounded
+                v-tooltip.left="'Eliminar registro'"
+                @click="confirmarEliminacion(data)"
+              />
+            </template>
+          </Column>
+        </DataTable>
       </div>
 
     </main>

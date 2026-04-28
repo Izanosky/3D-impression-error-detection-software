@@ -62,7 +62,7 @@ async function processImage(imagen) {
             }
 
             // Devolvemos el tensor para que el modelo pueda procesarlo
-            resolve(new ort.Tensor('float32', float32Data, [1, 3, INPUT_DIM, INPUT_DIM]))
+            resolve(new ort.Tensor('float32', float32Data, [1, 3, DIMENSION, DIMENSION]))
         }
 
         img.onerror = reject
