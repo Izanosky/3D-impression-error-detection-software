@@ -14,7 +14,6 @@ export const usePrinterStore = defineStore('printer', () => {
     const archivosGcode = ref([])
     const urlStream = ref('')
     const mensajeCancelacionAuto = ref('')
-    const ultimoFrame = ref('')  // Último frame capturado de la cámara (data URL)
 
     let websocket = null
 
@@ -125,16 +124,14 @@ export const usePrinterStore = defineStore('printer', () => {
 
     // Cancela la impresión manualmente y registra la cancelación en el historial
     async function cancelarImpresion() {
-        // Guardamos el frame y nombre del archivo ANTES de cancelar
-        const frame = ultimoFrame.value
         const nombreArchivo = estado.value.job?.file || 'Desconocido'
 
         // Enviamos el comando de cancelar a OctoPrint
         enviarComando('cancel')
 
-        // Registramos la cancelación en el historial, aunque no haya frame
+        // Registramos la cancelación en el historial
         try {
-            await guardarRegistro('cancelada', frame, nombreArchivo)
+            await guardarRegistro('cancelada', nombreArchivo)
             console.log('[Historial] Impresión cancelada registrada')
         } catch (e) {
             console.error('[Historial] Error registrando cancelación:', e)
@@ -143,11 +140,10 @@ export const usePrinterStore = defineStore('printer', () => {
 
     // Registra en el historial que la impresión se detuvo por un error de la IA
     async function registrarError() {
-        const frame = ultimoFrame.value
         const nombreArchivo = estado.value.job?.file || 'Desconocido'
 
         try {
-            await guardarRegistro('error', frame, nombreArchivo)
+            await guardarRegistro('error', nombreArchivo)
             console.log('[Historial] Impresión con error registrada')
         } catch (e) {
             console.error('[Historial] Error registrando fallo:', e)
@@ -252,10 +248,9 @@ export const usePrinterStore = defineStore('printer', () => {
         if (_estabImprimiendo && !imprimiendoAhora) {
             const progreso = estado.value.job?.progress || 0
             if (progreso >= 99) {
-                const frame = ultimoFrame.value
                 const nombreArchivo = estado.value.job?.file || 'Desconocido'
                 try {
-                    await guardarRegistro('finalizada', frame, nombreArchivo)
+                    await guardarRegistro('finalizada', nombreArchivo)
                     console.log('[Historial] Impresión finalizada registrada')
                 } catch (e) {
                     console.error('[Historial] Error registrando finalización:', e)
@@ -297,7 +292,6 @@ export const usePrinterStore = defineStore('printer', () => {
         detecciones,
         urlStream,
         mensajeCancelacionAuto,
-        ultimoFrame,
 
         // Getters
         estaImprimiendo,

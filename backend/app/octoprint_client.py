@@ -1,6 +1,5 @@
 import os
 import requests
-from app.config import WEBCAM_SNAPSHOT_URL
 
 
 class OctoPrintClient:
@@ -42,13 +41,6 @@ class OctoPrintClient:
             "job": job_resp.json() if job_ok else {},
             "connected": printer_ok,
         }
-
-    def get_snapshot(self):
-        try:
-            response = requests.get(WEBCAM_SNAPSHOT_URL, timeout=10)
-            return response.content if response.status_code == 200 else None
-        except Exception:
-            return None
 
     # Control de impresión
     def pause_print(self):

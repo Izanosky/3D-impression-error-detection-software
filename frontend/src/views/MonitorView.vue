@@ -241,9 +241,6 @@ onMounted(() => {
       // Convertir el canvas a una imagen en formato data URL
       const capturaDataUrl = canvas.toDataURL('image/jpeg', 0.8)
 
-      // Guardar el último frame en el store para que se use en el historial
-      store.ultimoFrame = capturaDataUrl
-
       // Ejecutar el modelo de IA sobre el frame capturado
       const resultado = await deteccionErrores(capturaDataUrl)
       store.detecciones.has_errors = resultado.has_errors

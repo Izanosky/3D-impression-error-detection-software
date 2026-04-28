@@ -40,20 +40,6 @@
           :key="registro.id"
           class="flex align-items-center gap-4 p-3 bg-black-alpha-20 border-round-xl border-1 surface-border shadow-2 hover:shadow-4 transition-all transition-duration-200"
         >
-          <!-- Miniatura de la captura -->
-          <div class="flex-shrink-0 border-round overflow-hidden bg-black-alpha-50" style="width: 100px; height: 75px;">
-            <img
-              v-if="registro.urlCaptura"
-              :src="registro.urlCaptura"
-              alt="Último frame capturado"
-              class="w-full h-full block"
-              style="object-fit: cover;"
-            />
-            <div v-else class="w-full h-full flex align-items-center justify-content-center">
-              <i class="pi pi-image text-color-secondary text-2xl opacity-50"></i>
-            </div>
-          </div>
-
           <!-- Información del registro -->
           <div class="flex flex-column gap-1 flex-grow-1 min-w-0">
             <!-- Etiqueta de estado -->
