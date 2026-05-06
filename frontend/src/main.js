@@ -8,7 +8,6 @@ import ConfirmationService from 'primevue/confirmationservice'
 import router from './router'
 import App from './App.vue'
 
-// Componentes PrimeVue registrados globalmente
 import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
 import Card from 'primevue/card'
@@ -53,7 +52,7 @@ app.use(PrimeVue, {
 })
 app.directive('tooltip', Tooltip)
 
-// Registrar componentes globalmente
+// Componentes registrados de forma global
 app.component('Button', Button)
 app.component('InputText', InputText)
 app.component('Card', Card)

@@ -78,6 +78,7 @@
               class="w-full font-bold py-3 mt-2" />
           </Form>
 
+
           <div class="text-center mt-5">
             <span class="text-sm text-color-secondary">¿Ya tienes cuenta? </span>
             <Button label="Inicia sesión aquí" link @click="router.push('/login')"
@@ -102,6 +103,7 @@ const router = useRouter()
 const toast = useToast()
 
 const loading = ref(false)
+
 const registerError = ref('')
 
 const initialValues = ref({
@@ -160,4 +162,6 @@ async function onFormSubmit({ valid, values }) {
     loading.value = false
   }
 }
+
+
 </script>

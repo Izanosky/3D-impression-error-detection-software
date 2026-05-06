@@ -18,31 +18,31 @@ Sistema de detección de errores en impresión 3D usando visión por computadora
 |-----------|---------|
 | Node.js | 18+ |
 | Navegador | Chrome, Firefox, Edge (moderno) |
+| Firebase | Proyecto configurado (Auth, Firestore, Storage) |
 
-### Inteligencia Artificial (Local)
+### Inteligencia Artificial (Frontend)
 | Componente | Descripción |
 |------------|-------------|
-| YOLOv8 | Modelo local de detección de errores (`backend/app/model/best.pt`) |
+| ONNX Runtime | El modelo de detección se ejecuta localmente en el navegador (`frontend/public/model/best.onnx`) |
 
 ---
 
 ## 🏗️ Arquitectura
 
-```
+```text
 ┌─────────────────┐     WebSocket      ┌─────────────────┐
 │                 │◄──────────────────►│                 │
 │    Frontend     │   ws://ip:8000/ws  │     Backend     │
 │   (Vue.js)      │                    │   (FastAPI)     │
-│                 │                    │                 │
-└─────────────────┘                    └────────┬────────┘
-                                                │
-                              ┌─────────────────┼─────────────────┐
-                              │                 │                 │
-                              ▼                 ▼                 ▼
-                       ┌──────────┐      ┌──────────┐      ┌──────────┐
-                       │OctoPrint │      │  Cámara  │      │  YOLOv8  │
-                       │   API    │      │          │      │ (Local)  │
-                       └──────────┘      └──────────┘      └──────────┘
+│  [ ONNX IA ]    │                    │                 │
+└────────┬────────┘                    └────────┬────────┘
+         │                                      │
+         │ (Cloud)                              │ (Local Network)
+         ▼                                      ▼
+  ┌────────────┐                         ┌─────────────┐
+  │  Firebase  │                         │  OctoPrint  │
+  │ (DB/Auth)  │                         │  + Cámara   │
+  └────────────┘                         └─────────────┘
 ```
 
 ---
@@ -51,242 +51,88 @@ Sistema de detección de errores en impresión 3D usando visión por computadora
 
 ### Conexión Inicial
 
-```
-1. Usuario abre el Frontend en navegador
-2. Frontend comprueba si hay IP del backend guardada (localStorage)
-   ├─ NO → Muestra popup de configuración (obligatorio)
-   └─ SI → Conecta WebSocket a ws://[IP]:8000/ws
-3. Backend acepta conexión WebSocket
-```
+1. Usuario abre el Frontend en navegador y se autentica vía Firebase.
+2. Frontend conecta vía WebSocket a `ws://[IP_BACKEND]:8000/ws`.
+3. Backend acepta la conexión WebSocket.
 
-### Ciclo de Actualización (cada 3 segundos)
+### Ciclo de Actualización (cada 1 segundo)
 
-```
-Backend (automático):
-  │
-  ├─► 1. Consulta OctoPrint API
-  │      GET /api/printer  → Estado, temperaturas
-  │      GET /api/job      → Progreso, archivo, tiempos
-  │
-  ├─► 2. Captura imagen de cámara
-  │      GET /webcam/?action=snapshot
-  │
-  ├─► 3. Procesa imagen en Local (YOLOv8)
-  │      Analiza imagen JPEG en el modelo best.pt
-  │      ◄── Devuelve predicciones de errores detectados
-  │
-  ├─► 4. Procesa imagen
-  │      Dibuja bounding boxes sobre errores detectados
-  │      Convierte a Base64
-  │
-  └─► 5. Envía a todos los clientes WebSocket
-         {
-           "type": "update",
-           "data": {
-             "status": { ... },
-             "detections": { ... },
-             "snapshot": "data:image/jpeg;base64,..."
-           }
-         }
+**Backend (automático):**
+1. Consulta OctoPrint API (Estado, temperaturas, progreso).
+2. Envía a todos los clientes WebSocket el estado y datos de impresión.
 
-Frontend:
-  │
-  └─► Recibe mensaje WebSocket
-      Actualiza UI automáticamente (sin polling)
-```
-
-### Comandos del Usuario
-
-```
-Usuario pulsa "Pausar":
-  │
-  Frontend ──► WebSocket ──► {"action": "pause"}
-                                    │
-  Backend ◄─────────────────────────┘
-      │
-      └─► POST OctoPrint /api/job {"command": "pause"}
-      │
-      └─► Responde al Frontend
-          {"type": "command_result", "action": "pause", "success": true}
-```
+**Frontend:**
+1. Recibe mensaje WebSocket con el estado.
+2. Procesa la última imagen/stream de la cámara usando el modelo ONNX en el navegador (`onnxruntime-web`).
+3. Dibuja bounding boxes sobre errores detectados.
+4. Actualiza la UI y, si es necesario, alerta al usuario o detiene la impresión.
 
 ---
 
-## 📡 Formato de Mensajes WebSocket
+## 🧠 Modelo de Inteligencia Artificial (ONNX)
 
-### Backend → Frontend
-
-**Actualización de estado:**
-```json
-{
-  "type": "update",
-  "data": {
-    "status": {
-      "connected": true,
-      "state": "Printing",
-      "temperatures": {
-        "bed": {"actual": 60.0, "target": 60.0},
-        "tool0": {"actual": 200.0, "target": 200.0}
-      },
-      "job": {
-        "file": "modelo.gcode",
-        "progress": 45.5,
-        "time_elapsed": 3600,
-        "time_remaining": 4400
-      }
-    },
-    "detections": {
-      "has_errors": true,
-      "total_detections": 2,
-      "classes": {
-        "spaghetti": {"count": 1, "max_confidence": 0.85},
-        "stringing": {"count": 1, "max_confidence": 0.72}
-      }
-    },
-    "snapshot": "data:image/jpeg;base64,/9j/4AAQ..."
-  }
-}
-```
-
-**Resultado de comando:**
-```json
-{
-  "type": "command_result",
-  "action": "pause",
-  "success": true
-}
-```
-
-### Frontend → Backend
-
-**Pausar impresión:**
-```json
-{"action": "pause"}
-```
-
-**Reanudar impresión:**
-```json
-{"action": "resume"}
-```
-
----
-
-## 🧠 Modelo de Inteligencia Artificial (YOLOv8)
-
-La aplicación utiliza un modelo YOLOv8 que procesa las imágenes de forma rápida y segura en tu propia máquina (Local Inference), sin depender de la nube.
+La aplicación utiliza un modelo de visión artificial que ahora se ejecuta **directamente en el navegador** (Client-side Inference) para liberar carga del servidor, permitiendo usar hardware menos potente (como una Raspberry Pi) para el backend.
 
 1. **Ubicación del Modelo:**
-   Asegúrate de colocar tu archivo de modelo ya entrenado (por ejemplo, `best.pt`) en la siguiente ruta antes de arrancar el servidor backend:
-   `backend/app/model/best.pt`
+   Asegúrate de colocar tu archivo de modelo exportado a formato ONNX en la siguiente ruta:
+   `frontend/public/model/best.onnx`
 
-2. **Entrenamiento (Opcional):**
-   Si deseas entrenar tu propio modelo desde cero con nuevas imágenes, esta aplicación incluye el script `train_model.py`. Debes tener un dataset adecuadamente formateado localmente (definido en `data.yaml`).
-
----
-
-## 🚀 Instalación
-
-### Opción rápida: instalar todo a la vez
-
-Desde la carpeta raíz del proyecto, ejecuta:
-
-**Windows:**
-```bash
-setup_env.bat
-```
-
-**Linux / Raspberry Pi:**
-```bash
-chmod +x setup_env.sh backend/install.sh frontend/install.sh
-bash setup_env.sh
-```
-
-Esto instalará tanto el backend como el frontend automáticamente.
+2. **Exportar desde YOLOv8:**
+   Si entrenas un modelo en YOLOv8 (`.pt`), expórtalo a ONNX antes de usarlo:
+   `yolo export model=best.pt format=onnx`
 
 ---
 
-### Opción manual: instalar por separado
+## 🚀 Instalación y Configuración
 
-#### 🔧 Backend (Python + FastAPI)
-
-**Requisitos previos:**
-- [Python 3.10](https://www.python.org/downloads/) instalado
-  - **Windows:** Asegúrate de marcar "Add to PATH" durante la instalación
-  - **Linux / Raspberry Pi:** `sudo apt install python3.10 python3.10-venv`
-
-**Pasos:**
+### 1. Backend (Python + FastAPI)
 
 1. Abre una terminal y navega a la carpeta del backend:
    ```bash
    cd backend
    ```
 
-2. Ejecuta el script de instalación:
-
+2. Crea y activa un entorno virtual:
    **Windows:**
    ```bash
-   install.bat
-   ```
-
-   **Linux / Raspberry Pi:**
-   ```bash
-   chmod +x install.sh
-   bash install.sh
-   ```
-
-   Esto creará un entorno virtual con Python 3.10 (`.venv`) e instalará todas las dependencias del archivo `requirements.txt`.
-
-3. **(Alternativa manual)** Si prefieres hacerlo paso a paso:
-
-   **Windows:**
-   ```bash
-   py -3.10 -m venv .venv
+   python -m venv .venv
    .venv\Scripts\activate
-   pip install -r requirements.txt
    ```
-
    **Linux / Raspberry Pi:**
    ```bash
    python3.10 -m venv .venv
    source .venv/bin/activate
+   ```
+
+3. Instala las dependencias:
+   ```bash
    pip install -r requirements.txt
    ```
 
-> **⚠️ Nota Linux:** La carpeta `.venv` es **oculta** (empieza por punto). Usa `ls -a` para verla. Si no aparece con `ls` normal, no significa que no exista.
+4. **Configuración inicial de OctoPrint**:
+   La primera vez que ejecutes el servidor, te pedirá por consola la **URL** y **API Key** de tu OctoPrint. Estos datos se validarán y se guardarán automáticamente en `.env.back.template`.
 
----
-
-#### 🎨 Frontend (Vue.js + Vite)
-
-**Requisitos previos:**
-- [Node.js 18+](https://nodejs.org/) instalado
-  - **Linux / Raspberry Pi:** `sudo apt install nodejs npm` o usa [nvm](https://github.com/nvm-sh/nvm)
-
-**Pasos:**
+### 2. Frontend (Vue.js + Vite + Firebase)
 
 1. Abre una terminal y navega a la carpeta del frontend:
    ```bash
    cd frontend
    ```
 
-2. Ejecuta el script de instalación:
-
-   **Windows:**
-   ```bash
-   install.bat
-   ```
-
-   **Linux / Raspberry Pi:**
-   ```bash
-   chmod +x install.sh
-   bash install.sh
-   ```
-
-   Esto ejecutará `npm install` y descargará todas las dependencias definidas en `package.json`.
-
-3. **(Alternativa manual)** Si prefieres hacerlo directamente:
+2. Instala las dependencias:
    ```bash
    npm install
+   ```
+
+3. **Configura Firebase**:
+   Crea un archivo `.env` en la raíz de la carpeta `frontend` y añade tus credenciales de Firebase:
+   ```env
+   VITE_FIREBASE_API_KEY=tu_api_key
+   VITE_FIREBASE_AUTH_DOMAIN=tu_auth_domain
+   VITE_FIREBASE_PROJECT_ID=tu_project_id
+   VITE_FIREBASE_STORAGE_BUCKET=tu_storage_bucket
+   VITE_FIREBASE_MESSAGING_SENDER_ID=tu_messaging_sender_id
+   VITE_FIREBASE_APP_ID=tu_app_id
    ```
 
 ---
@@ -322,66 +168,32 @@ npm run dev
 
 El frontend estará disponible en `http://localhost:5173`.
 
-### 🔗 Primera conexión
-
-1. Abre `http://localhost:5173` en tu navegador
-2. La primera vez te pedirá la **dirección IP del backend** (si ejecutas todo en la misma máquina, introduce `localhost:8000`)
-3. El sistema se conectará por WebSocket y empezará a mostrar datos en tiempo real
-
 ---
 
 ## 📁 Estructura de Archivos
 
-```
+```text
 TFG/
 ├── backend/
 │   ├── app/
 │   │   ├── main.py              # API + WebSocket
-│   │   ├── config.py            # Configuración persistente
+│   │   ├── config.py            # Configuración
 │   │   ├── octoprint_client.py  # Cliente OctoPrint
-│   │   ├── local_model_client.py# Cliente modelo local YOLOv8
-│   │   └── image_processor.py   # Dibujado bounding boxes
-│   ├── settings.json            # Configuración guardada
+│   │   └── setup.py             # Gestión de claves/conexión inicial
 │   ├── requirements.txt
-│   ├── install.bat              # Instalador Windows
-│   └── install.sh               # Instalador Linux/Raspberry Pi
+│   └── .env.back.template       # Plantilla env para backend
 ├── frontend/
+│   ├── public/
+│   │   └── model/
+│   │       └── best.onnx        # Modelo de IA (YOLO exportado)
 │   ├── src/
-│   │   ├── App.vue              # Shell principal (header + router-view)
-│   │   ├── main.js              # Punto de entrada (plugins)
-│   │   ├── style.css            # Estilos globales
-│   │   ├── router/
-│   │   │   └── index.js         # Definición de rutas
-│   │   ├── stores/
-│   │   │   └── printer.js       # Estado global (Pinia)
-│   │   ├── views/
-│   │   │   ├── HomeView.vue     # Página de inicio
-│   │   │   ├── MonitorView.vue  # Dashboard de monitorización
-│   │   │   └── AboutView.vue    # Información del proyecto
-│   │   └── components/
-│   │       ├── AppHeader.vue    # Cabecera/navegación
-│   │       ├── CameraView.vue   # Vista de cámara
-│   │       ├── PrinterStatus.vue # Estado impresora
-│   │       ├── ControlPanel.vue  # Botones control
-│   │       └── SettingsDialog.vue # Configuración
-│   ├── package.json
-│   ├── install.bat              # Instalador Windows
-│   └── install.sh               # Instalador Linux/Raspberry Pi
-├── setup_env.bat                # Instalación completa (Windows)
-├── setup_env.sh                 # Instalación completa (Linux/Raspberry Pi)
+│   │   ├── App.vue              # Shell principal
+│   │   ├── main.js              # Punto de entrada
+│   │   ├── services/            # Servicios (Firebase, Inferencia ONNX, Auth)
+│   │   ├── stores/              # Estado global (Pinia)
+│   │   ├── views/               # Páginas
+│   │   └── assets/              # Recursos estáticos
+│   └── package.json
+├── help.txt
 └── README.md
 ```
-
----
-
-## ❓ Problemas Comunes (Linux / Raspberry Pi)
-
-| Problema | Solución |
-|----------|----------|
-| `python3.10: command not found` | `sudo apt install python3.10 python3.10-venv` |
-| No se crea el entorno virtual | Instalar paquete venv: `sudo apt install python3.10-venv` |
-| No veo la carpeta `.venv` | Es oculta en Linux (empieza por `.`). Usa `ls -a` para verla |
-| Quiero verificar que `.venv` existe | `test -d .venv && echo "EXISTE"` |
-| Quiero buscar dónde se creó `.venv` | `find ~ -name ".venv" -type d` |
-| `Permission denied` al ejecutar `.sh` | `chmod +x install.sh` o ejecutar con `bash install.sh` |
-| `npm: command not found` | `sudo apt install nodejs npm` o usa [nvm](https://github.com/nvm-sh/nvm) |

@@ -1,6 +1,8 @@
+// Definición del router
 import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
 
+// Definmos las rutas junto con sus respectivas vistas y si requieren autenticación
 const routes = [
     {
         path: '/',
@@ -21,7 +23,7 @@ const routes = [
     {
         path: '/history',
         name: 'history',
-        component: () => import('../views/TimelapseView.vue'),
+        component: () => import('../views/HistoryView.vue'),
         meta: { requiresAuth: true }
     },
     {
@@ -42,14 +44,17 @@ const routes = [
     }
 ]
 
+// Instanciamos el router
 const router = createRouter({
-    history: createWebHistory(),
+    history: createWebHistory(), // Nos permite tener URLs limpias (sin #) y navegar sin recargar la página
     routes
 })
 
 import { auth } from '@/services/firebase'
 import { onAuthStateChanged } from 'firebase/auth'
 
+// Este método lo usamos para confirmar si había una sesión activa cuando recargamos la página
+// Con esto evitamos que el usuario sea redirigido al login cuando recarga
 function getCurrentUser() {
     return new Promise((resolve, reject) => {
         const removeListener = onAuthStateChanged(
@@ -63,6 +68,7 @@ function getCurrentUser() {
     })
 }
 
+// Y con esto evitamos que un usuario no logueado acceda a rutas que requieren autenticación
 router.beforeEach(async (to, from, next) => {
     if (to.meta.requiresAuth) {
         if (await getCurrentUser()) {

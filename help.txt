@@ -2,42 +2,64 @@
   AYUDA - Sistema de Monitorización 3D
 ================================================
 
+== REQUISITOS PREVIOS ==
+  - Python 3.10+
+  - Node.js 18+ y npm
+  - Base de datos en Firebase (para historial y usuarios)
+
 == INSTALACIÓN ==
 
-  Windows:
-    Ejecuta setup_env.bat desde la carpeta raíz.
-    (O por separado: backend\install.bat y frontend\install.bat)
+  1. Backend (Servidor/Raspberry Pi):
+     cd backend
+     python -m venv .venv
+     
+     # En Windows:
+     .venv\Scripts\activate
+     # En Linux/Mac:
+     source .venv/bin/activate
+     
+     pip install -r requirements.txt
 
-  Linux / Raspberry Pi:
-    chmod +x setup_env.sh backend/install.sh frontend/install.sh
-    bash setup_env.sh
-    (O por separado: bash backend/install.sh y bash frontend/install.sh)
+  2. Frontend (Cliente):
+     cd frontend
+     npm install
 
-== ENTORNO VIRTUAL (Backend) ==
+== CONFIGURACIÓN ==
 
-  Windows:
-    cd backend
-    .venv\Scripts\activate
+  1. Backend (OctoPrint):
+     La primera vez que ejecutes el backend, te pedirá por consola:
+     - URL de OctoPrint (ej: http://localhost)
+     - API Key de OctoPrint
+     Esto se guardará automáticamente en un entorno local.
 
-  Linux / Raspberry Pi:
-    cd backend
-    source .venv/bin/activate
-
-  NOTA: En Linux, la carpeta .venv es OCULTA (empieza por punto).
-  Usa "ls -a" para verla. Si "ls" no la muestra, sigue existiendo.
-  Puedes verificar con: test -d .venv && echo "EXISTE"
+  2. Frontend (Firebase):
+     Crea un archivo .env en la carpeta "frontend" con tus credenciales:
+     VITE_FIREBASE_API_KEY=...
+     VITE_FIREBASE_AUTH_DOMAIN=...
+     VITE_FIREBASE_PROJECT_ID=...
+     VITE_FIREBASE_STORAGE_BUCKET=...
+     VITE_FIREBASE_MESSAGING_SENDER_ID=...
+     VITE_FIREBASE_APP_ID=...
 
 == EJECUCIÓN ==
 
   Terminal 1 - Backend:
     cd backend
-    Windows:  .venv\Scripts\activate
-    Linux:    source .venv/bin/activate
+    # En Windows: .venv\Scripts\activate
+    # En Linux:   source .venv/bin/activate
     uvicorn app.main:app --host 0.0.0.0 --port 8000
 
   Terminal 2 - Frontend:
     cd frontend
     npm run dev
+
+== MODELO IA (ONNX) ==
+
+  La inferencia ahora se realiza directamente en el navegador del usuario
+  (Frontend) usando ONNX Runtime Web, sin sobrecargar el servidor backend.
+  
+  Asegúrate de colocar tu modelo entrenado y exportado a formato ONNX en:
+  frontend/public/model/best.onnx
 
 == PROBLEMAS COMUNES (Linux / Raspberry Pi) ==
 
@@ -49,23 +71,7 @@
 
   3. No veo la carpeta .venv
      → Es oculta en Linux. Usa: ls -a
-     → O verifica que existe: test -d .venv && echo "EXISTE"
-     → Busca dónde se creó: find ~ -name ".venv" -type d
 
-  4. "Permission denied" al ejecutar .sh
-     → Dar permisos: chmod +x install.sh
-     → O ejecutar con: bash install.sh
-
-  5. npm no encontrado
+  4. npm no encontrado
      → Instalar Node.js: sudo apt install nodejs npm
      → O usar nvm: https://github.com/nvm-sh/nvm
-
-== MODELO IA (YOLOv8) ==
-
-  Para que la aplicación detecte los errores correctamente, debes
-  asegurarte de que has colocado tu modelo entrenado en la ruta correcta:
-  backend/app/model/best.pt
-
-  Los archivos yolov8n.pt y yolo26n.pt en la raíz son residuales del
-  proceso de entrenamiento y puedes ignorarlos/borrarlos si la
-  aplicación ya está configurada.

@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
 import { useUserStore } from './user'
 import { updateUser, getUserByUid } from '../services/usersService'
-import { guardarRegistro } from '../services/printHistoryService'
+import { guardarRegistro } from '../services/historyService'
 
 export const usePrinterStore = defineStore('printer', () => {
     const STORAGE_KEY = 'printer_monitor_backend_url'

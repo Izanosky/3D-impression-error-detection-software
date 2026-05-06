@@ -59,6 +59,7 @@
               class="w-full font-bold py-3" />
           </Form>
 
+
           <div class="text-center mt-5">
             <span class="text-sm text-color-secondary">¿Aún no tienes cuenta? </span>
             <Button label="Crear cuenta gratuitamente" link @click="router.push('/register')"
@@ -111,6 +112,7 @@ const confirm = useConfirm()
 
 // Variables auxiliares para estados de carga y otras funciones
 const loading = ref(false)
+
 const loginError = ref('')
 const newEmail = ref('')
 const resetLoading = ref(false)

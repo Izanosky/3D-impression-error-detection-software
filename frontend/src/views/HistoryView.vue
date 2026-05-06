@@ -104,7 +104,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useUserStore } from '../stores/user'
-import { obtenerHistorial, eliminarRegistro } from '../services/printHistoryService'
+import { obtenerHistorial, eliminarRegistro } from '../services/historyService'
 import { useConfirm } from 'primevue/useconfirm'
 
 const userStore = useUserStore()

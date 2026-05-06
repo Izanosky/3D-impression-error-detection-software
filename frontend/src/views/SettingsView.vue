@@ -99,7 +99,7 @@ onMounted(() => {
   const user = auth.currentUser
   if (user) {
     email.value = user.email || ''
-    profileInitialValues.value.displayName = user.displayName || userStore.userName || ''
+    profileInitialValues.value.displayName = userStore.userName || user.displayName || ''
   }
   backendIP.value = store.backendUrl || localStorage.getItem('printer_monitor_backend_url') || ''
 })

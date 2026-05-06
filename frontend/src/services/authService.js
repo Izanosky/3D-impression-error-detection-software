@@ -1,4 +1,4 @@
-// Servicios de autenticación con Firebase Auth
+// Todo lo relacionado con autenticación proporcionado por FireBase
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
@@ -18,6 +18,7 @@ export const signUp = async (emailValue, passwordValue, nameValue) => {
 
 export const signIn = (email, password) =>
   signInWithEmailAndPassword(auth, email, password)
+
 
 export const signOut = () => firebaseSignOut(auth)
 
