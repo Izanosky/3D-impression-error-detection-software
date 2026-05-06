@@ -138,7 +138,7 @@
                 :title="store.estado.job?.file">{{ store.estado.job?.file || 'Ningún archivo' }}</span>
             </div>
 
-            <div class="flex gap-3">
+            <div class="flex gap-3 my-auto">
               <div
                 class="flex-1 flex flex-column align-items-center bg-white-alpha-10 p-3 border-round gap-1 justify-content-center">
                 <span class="text-color-secondary uppercase text-xs font-semibold text-center">Extrusor</span>
@@ -153,7 +153,7 @@
               </div>
             </div>
 
-            <div class="flex flex-column gap-3 bg-white-alpha-10 p-3 border-round mt-auto">
+            <div class="flex flex-column gap-3 bg-white-alpha-10 p-3 border-round">
               <div class="flex justify-content-between align-items-center">
                 <span class="text-color-secondary text-xs font-semibold uppercase">Progreso</span>
                 <span class="font-bold text-primary">{{ Math.round(store.estado.progress?.completion || 0) }}%</span>

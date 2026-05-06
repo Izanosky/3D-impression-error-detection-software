@@ -30,6 +30,8 @@ import FileUpload from 'primevue/fileupload'
 import ConfirmDialog from 'primevue/confirmdialog'
 import Menubar from 'primevue/menubar'
 import TieredMenu from 'primevue/tieredmenu'
+import DataTable from 'primevue/datatable'
+import Column from 'primevue/column'
 
 import 'primeicons/primeicons.css'
 import 'primeflex/primeflex.css'
@@ -73,5 +75,7 @@ app.component('FileUpload', FileUpload)
 app.component('ConfirmDialog', ConfirmDialog)
 app.component('Menubar', Menubar)
 app.component('TieredMenu', TieredMenu)
+app.component('DataTable', DataTable)
+app.component('Column', Column)
 
 app.mount('#app')

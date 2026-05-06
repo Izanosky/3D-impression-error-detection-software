@@ -47,7 +47,7 @@
           emptyMessage="No se encontraron registros en el historial."
         >
           <!-- Columna Estado -->
-          <Column field="estado" header="Estado" sortable style="width: 15%; min-width: 120px;">
+          <Column field="estado" header="Estado" sortable style="width: 15%;">
             <template #body="{ data }">
               <Tag
                 :value="etiquetaEstado(data.estado)"
@@ -59,16 +59,20 @@
           </Column>
 
           <!-- Columna Archivo -->
-          <Column field="nombreArchivo" header="Archivo" sortable style="width: 50%; min-width: 250px;">
+          <Column field="nombreArchivo" header="Archivo" sortable style="width: 50%; max-width: 0;">
             <template #body="{ data }">
-              <span class="font-medium text-color block text-overflow-ellipsis overflow-hidden white-space-nowrap" style="max-width: 100%;" :title="data.nombreArchivo">
+              <div 
+                class="font-medium text-color text-overflow-ellipsis overflow-hidden white-space-nowrap" 
+                v-tooltip.bottom="data.nombreArchivo"
+                style="cursor: help;"
+              >
                 {{ data.nombreArchivo }}
-              </span>
+              </div>
             </template>
           </Column>
 
           <!-- Columna Fecha -->
-          <Column field="fechaFin" header="Fecha" sortable style="width: 25%; min-width: 180px;">
+          <Column field="fechaFin" header="Fecha" sortable style="width: 25%;">
             <template #body="{ data }">
               <div class="flex align-items-center gap-2 text-color-secondary text-sm">
                 <i class="pi pi-calendar text-xs"></i>
@@ -78,7 +82,7 @@
           </Column>
 
           <!-- Columna Acciones -->
-          <Column header="" style="width: 10%; min-width: 80px; text-align: center;">
+          <Column header="" style="width: 10%; text-align: center;">
             <template #body="{ data }">
               <Button
                 icon="pi pi-trash"
