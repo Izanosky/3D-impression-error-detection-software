@@ -8,11 +8,12 @@ export const useUserStore = defineStore('user', () => {
   const userName = ref('')
   let unsubscribe = null
 
+  // Esto lo hacemos para mantener el estado del usuario al recargar la página
   function startAuthListener() {
-    if (unsubscribe) return
+    if (unsubscribe) return // Si ya hay un listener, no hacemos nada
     unsubscribe = subscribeToAuth(async (user) => {
       currentUser.value = user
-      if (user) {
+      if (user) { // Si hay usuario logeado, obtenemos su nombre
         try {
           const name = await getUserName(user.uid)
           userName.value = name || user.email

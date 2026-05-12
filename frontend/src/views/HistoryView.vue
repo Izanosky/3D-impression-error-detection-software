@@ -9,25 +9,29 @@
           Historial de Impresiones
         </h1>
         <div class="flex gap-2">
-          <Button label="Actualizar" icon="pi pi-refresh" severity="secondary" outlined :loading="cargando" @click="cargarHistorial" />
+          <Button label="Actualizar" icon="pi pi-refresh" severity="secondary" outlined :loading="cargando"
+            @click="cargarHistorial" />
         </div>
       </div>
 
       <!-- Estado: Cargando -->
-      <div v-if="cargando && registros.length === 0" class="flex flex-column align-items-center justify-content-center p-6 bg-black-alpha-20 border-round-xl border-1 surface-border">
+      <div v-if="cargando && registros.length === 0"
+        class="flex flex-column align-items-center justify-content-center p-6 bg-black-alpha-20 border-round-xl border-1 surface-border">
         <i class="pi pi-spin pi-spinner text-primary text-5xl mb-3"></i>
         <p class="text-color-secondary m-0">Cargando historial...</p>
       </div>
 
       <!-- Estado: Error -->
-      <div v-else-if="mensajeError" class="flex flex-column align-items-center justify-content-center p-6 bg-black-alpha-20 border-round-xl border-1 surface-border">
+      <div v-else-if="mensajeError"
+        class="flex flex-column align-items-center justify-content-center p-6 bg-black-alpha-20 border-round-xl border-1 surface-border">
         <i class="pi pi-exclamation-triangle text-orange-400 text-5xl mb-3"></i>
         <p class="text-color-secondary m-0 mb-3">{{ mensajeError }}</p>
         <Button label="Reintentar" icon="pi pi-refresh" @click="cargarHistorial" />
       </div>
 
       <!-- Estado: Sin registros -->
-      <div v-else-if="registros.length === 0" class="flex flex-column align-items-center justify-content-center p-6 bg-black-alpha-20 border-round-xl border-1 surface-border">
+      <div v-else-if="registros.length === 0"
+        class="flex flex-column align-items-center justify-content-center p-6 bg-black-alpha-20 border-round-xl border-1 surface-border">
         <i class="pi pi-history text-color-secondary text-5xl mb-3 opacity-50"></i>
         <p class="text-color m-0 text-lg">No hay impresiones registradas</p>
         <p class="text-color-secondary m-0 text-sm mt-1">El historial de tus impresiones aparecerá aquí</p>
@@ -35,37 +39,22 @@
 
       <!-- Lista de registros -->
       <div v-else class="card bg-black-alpha-20 border-round-xl border-1 surface-border p-3">
-        <DataTable
-          :value="registros"
-          paginator
-          :rows="10"
-          :rowsPerPageOptions="[5, 10, 25, 50]"
-          responsiveLayout="stack"
-          breakpoint="960px"
-          stripedRows
-          class="p-datatable-sm"
-          emptyMessage="No se encontraron registros en el historial."
-        >
+        <DataTable :value="registros" paginator :rows="10" :rowsPerPageOptions="[5, 10, 25, 50]"
+          responsiveLayout="stack" breakpoint="960px" stripedRows class="p-datatable-sm"
+          emptyMessage="No se encontraron registros en el historial.">
           <!-- Columna Estado -->
           <Column field="estado" header="Estado" sortable style="width: 15%;">
             <template #body="{ data }">
-              <Tag
-                :value="etiquetaEstado(data.estado)"
-                :severity="severidadEstado(data.estado)"
-                :icon="iconoEstado(data.estado)"
-                class="font-semibold"
-              />
+              <Tag :value="etiquetaEstado(data.estado)" :severity="severidadEstado(data.estado)"
+                :icon="iconoEstado(data.estado)" class="font-semibold" />
             </template>
           </Column>
 
           <!-- Columna Archivo -->
           <Column field="nombreArchivo" header="Archivo" sortable style="width: 50%; max-width: 0;">
             <template #body="{ data }">
-              <div 
-                class="font-medium text-color text-overflow-ellipsis overflow-hidden white-space-nowrap" 
-                v-tooltip.bottom="data.nombreArchivo"
-                style="cursor: help;"
-              >
+              <div class="font-medium text-color text-overflow-ellipsis overflow-hidden white-space-nowrap"
+                v-tooltip.bottom="data.nombreArchivo" style="cursor: help;">
                 {{ data.nombreArchivo }}
               </div>
             </template>
@@ -84,14 +73,8 @@
           <!-- Columna Acciones -->
           <Column header="" style="width: 10%; text-align: center;">
             <template #body="{ data }">
-              <Button
-                icon="pi pi-trash"
-                severity="danger"
-                text
-                rounded
-                v-tooltip.left="'Eliminar registro'"
-                @click="confirmarEliminacion(data)"
-              />
+              <Button icon="pi pi-trash" severity="danger" text rounded v-tooltip.left="'Eliminar registro'"
+                @click="confirmarEliminacion(data)" />
             </template>
           </Column>
         </DataTable>
@@ -107,40 +90,46 @@ import { useUserStore } from '../stores/user'
 import { obtenerHistorial, eliminarRegistro } from '../services/historyService'
 import { useConfirm } from 'primevue/useconfirm'
 
+// Accedemos al store del usuario para saber si hay alguien logueado
 const userStore = useUserStore()
+// confirm nos permite mostrar un diálogo de confirmación antes de borrar
 const confirm = useConfirm()
 
-// Estado del componente
+// Lista de registros que se mostrará en la tabla
 const registros = ref([])
+// Indica si estamos esperando respuesta de Firebase (para mostrar el spinner)
 const cargando = ref(false)
+// Mensaje de error si algo falla al cargar
 const mensajeError = ref(null)
 
-// Al montar el componente, cargamos el historial
+// En cuanto se carga la página, pedimos el historial a Firebase
 onMounted(() => {
   cargarHistorial()
 })
 
-// Carga todos los registros del historial desde Firebase
+// Pide todos los registros del usuario actual a Firebase y los guarda en 'registros'
 async function cargarHistorial() {
+  // Si no hay usuario logueado, no podemos consultar Firebase
   if (!userStore.currentUser) {
     mensajeError.value = 'Usuario no autenticado'
     return
   }
 
-  cargando.value = true
+  cargando.value = true // Ponemos esto en true para que nos muestre el icono de carga
   mensajeError.value = null
 
   try {
-    registros.value = await obtenerHistorial()
+    registros.value = await obtenerHistorial() // Obtenemos el historial de Firebase
   } catch (e) {
     mensajeError.value = 'Error al cargar el historial. Verifica tu conexión.'
     console.error('[Historial] Error:', e)
   } finally {
+    // Tanto si sale bien como si falla, quitamos el spinner
     cargando.value = false
   }
 }
 
-// Muestra un diálogo de confirmación antes de eliminar un registro
+// Dialog para pedirle al usuario confirmación antes de borrar un registro
 function confirmarEliminacion(registro) {
   confirm.require({
     message: '¿Estás seguro de que quieres eliminar este registro del historial?',
@@ -151,8 +140,9 @@ function confirmarEliminacion(registro) {
     rejectLabel: 'Cancelar',
     accept: async () => {
       try {
+        // Borramos el documento de Firebase
         await eliminarRegistro(registro)
-        // Quitar el registro de la lista local sin recargar todo
+        // Lo quitamos también de la lista local para que desaparezca sin recargar la página
         registros.value = registros.value.filter(r => r.id !== registro.id)
       } catch (e) {
         console.error('[Historial] Error eliminando registro:', e)
@@ -161,9 +151,7 @@ function confirmarEliminacion(registro) {
   })
 }
 
-// ─── Helpers para mostrar el estado de cada registro ──────────────
-
-// Devuelve el texto de la etiqueta según el estado
+// Con esta función ponemos el estado de cada impresión en formato texto para mostrarlo en la tabla
 function etiquetaEstado(estado) {
   const etiquetas = {
     finalizada: 'Finalizada',
@@ -173,7 +161,7 @@ function etiquetaEstado(estado) {
   return etiquetas[estado] || estado
 }
 
-// Devuelve el color/severidad de PrimeVue según el estado
+// Con esta función ponemos el color del badge según el resultado de la impresión
 function severidadEstado(estado) {
   const severidades = {
     finalizada: 'success',
@@ -183,7 +171,7 @@ function severidadEstado(estado) {
   return severidades[estado] || 'secondary'
 }
 
-// Devuelve el icono según el estado
+// Con esta función ponemos el icono del badge según el resultado de la impresión
 function iconoEstado(estado) {
   const iconos = {
     finalizada: 'pi pi-check-circle',
@@ -193,11 +181,10 @@ function iconoEstado(estado) {
   return iconos[estado] || 'pi pi-info-circle'
 }
 
-// Formatea un Timestamp de Firestore a una fecha legible en español
+// Convertimos el timestamp almacenado en Firebase al formato dd/mm/yyyy hh:mm
 function formatearFecha(timestamp) {
   if (!timestamp) return 'Fecha desconocida'
 
-  // Firestore Timestamp tiene .toDate(), pero también puede venir como objeto con seconds
   let fecha
   if (timestamp.toDate) {
     fecha = timestamp.toDate()

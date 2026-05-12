@@ -74,8 +74,8 @@
             <div class="flex flex-column gap-2 mt-auto pt-4">
               <Button v-if="!store.estaImprimiendo && !store.estaPausada" label="Iniciar Impresión" icon="pi pi-play"
                 :disabled="!store.tieneArchivo || store.subiendo" @click="store.iniciarImpresion" />
-              <Button v-else-if="store.estaImprimiendo && !store.estaPausada" label="Pausar Impresión" icon="pi pi-pause"
-                severity="warning" @click="store.pausarImpresion" />
+              <Button v-else-if="store.estaImprimiendo && !store.estaPausada" label="Pausar Impresión"
+                icon="pi pi-pause" severity="warning" @click="store.pausarImpresion" />
               <Button v-else label="Reanudar Impresión" icon="pi pi-play" @click="store.reanudarImpresion" />
               <Button label="Cancelar Impresión" icon="pi pi-times" severity="danger" outlined
                 :disabled="!store.estaImprimiendo && !store.estaPausada" @click="store.cancelarImpresion" />
@@ -142,14 +142,16 @@
               <div
                 class="flex-1 flex flex-column align-items-center bg-white-alpha-10 p-3 border-round gap-1 justify-content-center">
                 <span class="text-color-secondary uppercase text-xs font-semibold text-center">Extrusor</span>
-                <span class="text-xl font-bold text-orange-400">{{ formatearTemperatura(store.estado.temperatures?.tool0?.actual)
-                  }}</span>
+                <span class="text-xl font-bold text-orange-400">{{
+                  formatearTemperatura(store.estado.temperatures?.tool0?.actual)
+                }}</span>
               </div>
               <div
                 class="flex-1 flex flex-column align-items-center bg-white-alpha-10 p-3 border-round gap-1 justify-content-center">
                 <span class="text-color-secondary uppercase text-xs font-semibold text-center">Cama Caliente</span>
-                <span class="text-xl font-bold text-red-400">{{ formatearTemperatura(store.estado.temperatures?.bed?.actual)
-                  }}</span>
+                <span class="text-xl font-bold text-red-400">{{
+                  formatearTemperatura(store.estado.temperatures?.bed?.actual)
+                }}</span>
               </div>
             </div>
 
@@ -213,15 +215,11 @@ let intervaloInferencia = null
 let procesando = false
 
 onMounted(() => {
-  // Cargar la IP guardada
   direccionIp.value = store.backendUrl || localStorage.getItem('printer_monitor_backend_url') || ''
 
-  // Bucle de inferencia: cada 2 segundos capturamos un frame de la cámara,
-  // lo guardamos como último frame y lo pasamos al modelo de IA para detectar errores
+  // Cada 2s capturamos un frame de la cámara y lo pasamos al modelo para detectar errores
   intervaloInferencia = setInterval(async () => {
-    // No hacer nada si no hay cámara, canvas, stream o ya estamos procesando
     if (!imagenCamara.value || !canvasCaptura.value || !store.urlStream || procesando) return
-    // Solo ejecutar inferencia mientras se está imprimiendo
     if (!store.estaImprimiendo) return
 
     procesando = true
@@ -229,20 +227,23 @@ onMounted(() => {
       const imagen = imagenCamara.value
       const canvas = canvasCaptura.value
 
-      // Ajustar el canvas al tamaño de la imagen de la cámara
+      // Ajustamos el canvas al tamaño del frame y lo dibujamos
       canvas.width = imagen.naturalWidth || 640
       canvas.height = imagen.naturalHeight || 480
       if (canvas.width === 0 || canvas.height === 0) return
 
-      // Dibujar el frame actual de la cámara en el canvas
+      // El contexto 2D es el "pincel" que nos permite dibujar sobre el canvas
       const ctx = canvas.getContext('2d')
+      // Copiamos el frame actual de la cámara al canvas
       ctx.drawImage(imagen, 0, 0, canvas.width, canvas.height)
 
-      // Convertir el canvas a una imagen en formato data URL
+      // Convertimos el canvas a un string base64 para poder enviárselo al modelo de IA
       const capturaDataUrl = canvas.toDataURL('image/jpeg', 0.8)
 
-      // Ejecutar el modelo de IA sobre el frame capturado
+      // Enviamos el frame al modelo de IA y obtenemos si ha detectado algún error
       const resultado = await deteccionErrores(capturaDataUrl)
+
+      // Guardamos el resultado en el store para que la UI pueda reaccionar
       store.detecciones.has_errors = resultado.has_errors
 
       // Si la IA detecta un error, registrarlo y cancelar la impresión

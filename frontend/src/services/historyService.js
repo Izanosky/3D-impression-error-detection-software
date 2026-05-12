@@ -1,56 +1,46 @@
-// Servicio de historial de impresiones — guarda y recupera registros en Firebase
-import { auth, db } from './firebase'
-import { collection, addDoc, query, where, getDocs, deleteDoc, doc, orderBy, Timestamp } from 'firebase/firestore'
+// Servicio para el historial de impresiones
+import { db } from './firebase'
+import {
+    collection,
+    addDoc,
+    query,
+    where,
+    getDocs,
+    deleteDoc,
+    doc,
+    orderBy,
+    Timestamp,
+} from 'firebase/firestore'
+import { getCurrentUserUUID } from './authService'
 
-// Guarda un nuevo registro en el historial de impresiones.
-// - estado: 'finalizada', 'cancelada' o 'error'
-// - nombreArchivo: nombre del archivo .gcode que se estaba imprimiendo
-export async function guardarRegistro(estado, nombreArchivo) {
-    const usuario = auth.currentUser
-    if (!usuario) throw new Error('Usuario no autenticado')
+// Definimos la coleccion
+const colRef = collection(db, 'historial_impresiones')
 
-    // Creamos el registro en la colección 'historial_impresiones' de Firestore
-    // Ya no usamos Firebase Storage ni subimos imágenes.
-    await addDoc(collection(db, 'historial_impresiones'), {
-        userId: usuario.uid,
+// Función para guardar una registro en el historial de impresiones
+export const guardarRegistro = (estado, nombreArchivo) =>
+    addDoc(colRef, {
+        userId: getCurrentUserUUID(),
         estado,
         nombreArchivo: nombreArchivo || 'Desconocido',
         fechaFin: Timestamp.now(),
     })
-}
 
-// Obtiene todos los registros del historial del usuario actual,
-// ordenados del más reciente al más antiguo.
-export async function obtenerHistorial() {
-    const usuario = auth.currentUser
-    if (!usuario) throw new Error('Usuario no autenticado')
 
-    // Consultamos los registros del usuario ordenados por fecha descendente
-    const consulta = query(
-        collection(db, 'historial_impresiones'),
-        where('userId', '==', usuario.uid),
+// Funcion para obtener el historial de impresiones 
+export const obtenerHistorial = async () => {
+    const q = query(
+        colRef,
+        where('userId', '==', getCurrentUserUUID()),
         orderBy('fechaFin', 'desc')
     )
 
-    const resultado = await getDocs(consulta)
-    const registros = []
-
-    for (const documento of resultado.docs) {
-        const datos = documento.data()
-
-        registros.push({
-            id: documento.id,
-            estado: datos.estado,
-            nombreArchivo: datos.nombreArchivo,
-            fechaFin: datos.fechaFin,
-        })
-    }
-
-    return registros
+    const snapshot = await getDocs(q)
+    return snapshot.docs.map((documento) => ({
+        id: documento.id,
+        ...documento.data(),
+    }))
 }
 
-// Elimina un registro del historial
-export async function eliminarRegistro(registro) {
-    // Borrar el documento de la base de datos
-    await deleteDoc(doc(db, 'historial_impresiones', registro.id))
-}
+// Funcion para eliminar un registro del historial
+export const eliminarRegistro = (registro) =>
+    deleteDoc(doc(db, 'historial_impresiones', registro.id))

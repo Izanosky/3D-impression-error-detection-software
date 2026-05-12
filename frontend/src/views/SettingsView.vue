@@ -16,7 +16,8 @@
         <div class="flex flex-column gap-2">
           <label class="text-sm font-semibold text-color-secondary uppercase">Correo Electrónico</label>
           <InputGroup>
-            <InputGroupAddon class="bg-white-alpha-10 border-none"><i class="pi pi-envelope text-white"></i></InputGroupAddon>
+            <InputGroupAddon class="bg-white-alpha-10 border-none"><i class="pi pi-envelope text-white"></i>
+            </InputGroupAddon>
             <InputText v-model="email" disabled class="bg-white-alpha-10 border-none" />
           </InputGroup>
         </div>
@@ -24,7 +25,8 @@
         <div class="flex flex-column gap-1">
           <label class="text-sm font-semibold text-color-secondary uppercase">Nombre para mostrar</label>
           <InputGroup>
-            <InputGroupAddon class="bg-white-alpha-10 border-none"><i class="pi pi-id-card text-white"></i></InputGroupAddon>
+            <InputGroupAddon class="bg-white-alpha-10 border-none"><i class="pi pi-id-card text-white"></i>
+            </InputGroupAddon>
             <InputText name="displayName" class="bg-white-alpha-10 border-none" />
           </InputGroup>
           <Message v-if="$form.displayName?.invalid" severity="error" size="small" variant="simple">
@@ -32,7 +34,8 @@
           </Message>
         </div>
 
-        <Button type="submit" label="Guardar Perfil" icon="pi pi-save" :loading="loading" class="mt-2 w-full md:w-auto align-self-end w-full" />
+        <Button type="submit" label="Guardar Perfil" icon="pi pi-save" :loading="loading"
+          class="mt-2 w-full md:w-auto align-self-end w-full" />
       </Form>
     </Panel>
 
@@ -46,14 +49,18 @@
       <div class="flex flex-column gap-4 pt-3">
         <div class="flex flex-column gap-2">
           <label class="text-sm font-semibold text-color-secondary uppercase">IP / Dominio del Backend (Defecto)</label>
-          <small class="text-color-secondary mb-2">Dirección por defecto utilizada para conectarse al backend o a OctoPrint desde la vista del Monitor.</small>
+          <small class="text-color-secondary mb-2">Dirección por defecto utilizada para conectarse al backend o a
+            OctoPrint
+            desde la vista del Monitor.</small>
           <InputGroup>
-            <InputGroupAddon class="bg-white-alpha-10 border-none"><i class="pi pi-server text-white"></i></InputGroupAddon>
+            <InputGroupAddon class="bg-white-alpha-10 border-none"><i class="pi pi-server text-white"></i>
+            </InputGroupAddon>
             <InputText v-model="backendIP" placeholder="Ej: 192.168.1.100" class="bg-white-alpha-10 border-none" />
           </InputGroup>
         </div>
 
-        <Button label="Actualizar Red" icon="pi pi-cloud-upload" severity="secondary" @click="saveSettings" class="mt-2 w-full md:w-auto align-self-end w-full" />
+        <Button label="Actualizar Red" icon="pi pi-cloud-upload" severity="secondary" @click="saveSettings"
+          class="mt-2 w-full md:w-auto align-self-end w-full" />
       </div>
     </Panel>
   </div>
@@ -75,6 +82,7 @@ const store = usePrinterStore()
 const userStore = useUserStore()
 const toast = useToast()
 
+// Variables para almacenar los datos del usuario
 const email = ref('')
 const backendIP = ref('')
 const loading = ref(false)
@@ -83,6 +91,7 @@ const profileInitialValues = ref({
   displayName: ''
 })
 
+// Definimos las restricciones del formulario mediante el Zod
 const profileResolver = ref(
   zodResolver(
     z.object({
@@ -95,6 +104,7 @@ const profileResolver = ref(
   )
 )
 
+// Cuando se carga la vista, cargamos los datos del usuario
 onMounted(() => {
   const user = auth.currentUser
   if (user) {
@@ -104,25 +114,37 @@ onMounted(() => {
   backendIP.value = store.backendUrl || localStorage.getItem('printer_monitor_backend_url') || ''
 })
 
+// Función para manejar el submit del formulario
 async function onProfileSubmit({ valid, values }) {
+
+  // Si el formulario no es válido, no hacemos nada
   if (!valid) return
+
+  // Obtenemos el usuario actual
   const user = auth.currentUser
   if (!user) return
 
+  // Actualizamos el perfil
   loading.value = true
   try {
+    // Actualizamos el perfil
     await updateProfile(user, { displayName: values.displayName })
+    // Actualizamos el usuario en la base de datos
     await updateUser(user.uid, { displayName: values.displayName })
+    // Actualizamos el usuario en el store
     userStore.userName = values.displayName
     toast.add({ severity: 'success', summary: 'Perfil guardado', detail: 'Tu perfil se ha actualizado correctamente.', life: 3000 })
-  } catch (error) {
+  }
+  catch (error) {
     console.error('Error actualizando perfil:', error)
     toast.add({ severity: 'error', summary: 'Error', detail: 'No se pudo actualizar el perfil.', life: 3000 })
-  } finally {
+  }
+  finally {
     loading.value = false
   }
 }
 
+// Guardamos la configuración
 function saveSettings() {
   let url = backendIP.value.trim()
   url = url.replace(/^https?:\/\//, '')
