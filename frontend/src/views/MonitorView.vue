@@ -144,14 +144,14 @@
                 <span class="text-color-secondary uppercase text-xs font-semibold text-center">Extrusor</span>
                 <span class="text-xl font-bold text-orange-400">{{
                   formatearTemperatura(store.estado.temperatures?.tool0?.actual)
-                }}</span>
+                  }}</span>
               </div>
               <div
                 class="flex-1 flex flex-column align-items-center bg-white-alpha-10 p-3 border-round gap-1 justify-content-center">
                 <span class="text-color-secondary uppercase text-xs font-semibold text-center">Cama Caliente</span>
                 <span class="text-xl font-bold text-red-400">{{
                   formatearTemperatura(store.estado.temperatures?.bed?.actual)
-                }}</span>
+                  }}</span>
               </div>
             </div>
 
