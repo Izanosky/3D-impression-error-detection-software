@@ -40,7 +40,7 @@ export const usePrinterStore = defineStore('printer', () => {
 
     // Devuelve true si el estado de la impresora incluye 'pause'
     const estaPausada = computed(() =>
-        estado.value.state?.toLowerCase().includes('paus')
+        estado.value.state?.toLowerCase().includes('pause')
     )
 
     const tieneArchivo = computed(() => {
