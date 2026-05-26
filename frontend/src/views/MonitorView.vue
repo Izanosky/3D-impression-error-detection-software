@@ -40,12 +40,12 @@
 
             <div class="flex flex-column gap-1 mt-auto pt-2">
               <span class="text-xs font-semibold text-color-secondary uppercase">Conexión IP</span>
-              <InputGroup>
-                <InputText v-model="direccionIp" placeholder="Ej: 192.168.1.100" class="bg-white-alpha-10 w-full"
+              <div class="flex align-items-center gap-2">
+                <InputText v-model="direccionIp" placeholder="Ej: 192.168.1.100" class="bg-white-alpha-10 flex-1"
                   :disabled="store.estaImprimiendo || store.estaPausada" />
                 <Button label="Conectar" icon="pi pi-bolt" @click="actualizarIp"
                   :disabled="store.estaImprimiendo || store.estaPausada || !direccionIp.trim()" />
-              </InputGroup>
+              </div>
             </div>
           </div>
 
@@ -144,14 +144,14 @@
                 <span class="text-color-secondary uppercase text-xs font-semibold text-center">Extrusor</span>
                 <span class="text-xl font-bold text-orange-400">{{
                   formatearTemperatura(store.estado.temperatures?.tool0?.actual)
-                  }}</span>
+                }}</span>
               </div>
               <div
                 class="flex-1 flex flex-column align-items-center bg-white-alpha-10 p-3 border-round gap-1 justify-content-center">
                 <span class="text-color-secondary uppercase text-xs font-semibold text-center">Cama Caliente</span>
                 <span class="text-xl font-bold text-red-400">{{
                   formatearTemperatura(store.estado.temperatures?.bed?.actual)
-                  }}</span>
+                }}</span>
               </div>
             </div>
 
@@ -193,7 +193,7 @@ import { useToast } from 'primevue/usetoast'
 const store = usePrinterStore()
 const toast = useToast()
 
-// Estado de los paneles colapsables
+// Estado de los paneles
 const configColapsado = ref(false)
 const monitorColapsado = ref(true)
 

@@ -148,8 +148,13 @@ async function onFormSubmit({ valid, values }) {
   registerError.value = ''
   try {
     await signUp(values.email, values.password, values.name)
-    toast.add({ severity: 'success', summary: 'Cuenta creada', detail: `¡Bienvenido ${values.name}!`, life: 3000 })
-    router.push('/monitor')
+    toast.add({
+      severity: 'info',
+      summary: 'Verifica tu correo',
+      detail: 'Te hemos enviado un email de verificación. Revisa tu bandeja de entrada antes de iniciar sesión.',
+      life: 8000
+    })
+    router.push('/login')
   }
   catch (err) {
     console.error('Error al registrarse', err)

@@ -71,8 +71,14 @@ function getCurrentUser() {
 // Y con esto evitamos que un usuario no logueado acceda a rutas que requieren autenticación
 router.beforeEach(async (to, from, next) => {
     if (to.meta.requiresAuth) {
-        if (await getCurrentUser()) {
-            next()
+        const user = await getCurrentUser()
+        if (user) {
+            // Comprobamos que el usuario haya verificado su correo electrónico
+            if (!user.emailVerified) {
+                next('/login')
+            } else {
+                next()
+            }
         } else {
             next('/login')
         }

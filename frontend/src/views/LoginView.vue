@@ -104,7 +104,7 @@ import { zodResolver } from '@primevue/forms/resolvers/zod'
 import { useRouter } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
 import { useConfirm } from 'primevue/useconfirm'
-import { signIn, resetPassword } from '@/services/authService'
+import { signIn, signOut, resetPassword } from '@/services/authService'
 
 const router = useRouter()
 const toast = useToast()
@@ -140,7 +140,21 @@ async function onFormSubmit({ valid, values }) {
   loginError.value = ''
 
   try { // Intentamos iniciar sesión
-    await signIn(values.email, values.password)
+    const userCredential = await signIn(values.email, values.password)
+
+    // Comprobamos si el usuario ha verificado su correo electrónico
+    if (!userCredential.user.emailVerified) {
+      await signOut()
+      loginError.value = 'Debes verificar tu correo electrónico antes de acceder'
+      toast.add({
+        severity: 'warn',
+        summary: 'Email no verificado',
+        detail: 'Revisa tu bandeja de entrada y haz clic en el enlace de verificación.',
+        life: 6000
+      })
+      return
+    }
+
     toast.add({ severity: 'success', summary: 'Bienvenido', detail: 'Sesión iniciada correctamente', life: 3000 })
     router.push('/monitor')
   }
@@ -149,7 +163,7 @@ async function onFormSubmit({ valid, values }) {
     loginError.value = 'Credenciales incorrectas'
     toast.add({ severity: 'error', summary: 'Error de acceso', detail: 'Verifica tu email y contraseña', life: 3000 })
   }
-  finally { // Pausamos el estaod de carga
+  finally { // Pausamos el estado de carga
     loading.value = false
   }
 }
