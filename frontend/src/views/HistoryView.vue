@@ -598,7 +598,7 @@ function abrirGraficaProgreso(registro) {
 const totalImpresiones = computed(() => registros.value.length)
 const erroresDetectados = computed(() => registros.value.filter(r => r.estado === 'error').length)
 
-// Función auxiliar para convertir el formato de timestamp de Firestore a Date nativo de JS
+// Funcion auxiliar para convertir el formato de timestamp de Firestore a Date nativo de JS
 function obtenerFecha(timestamp) {
   if (!timestamp) return new Date()
   if (timestamp.toDate) return timestamp.toDate()

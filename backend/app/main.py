@@ -33,18 +33,17 @@ class ConnectionManager:
 
 manager = ConnectionManager()
 
-# Estado previo para detectar cuándo termina una impresión
+# Estado previo para detectar cuando termina una impresion
 _previous_printing = False
 
 
 # Metodo auxiliar para transformar la respuesta de OctoPrint en un diccionario limpio para el frontend
 def _build_status(raw):
-    # Extraemos de forma segura los subdiccionarios principales usando .get() para evitar KeyError si no existen
     printer = raw.get("printer", {})
     job = raw.get("job", {})
 
     return {
-        # Estado de conexión general con la impresora física
+        # Estado de conexion general con la impresora fisica
         "connected": raw.get("connected", False),
         
         # Estado textual de la impresora (ej: "Operational", "Printing", "Paused")
@@ -56,9 +55,9 @@ def _build_status(raw):
             "tool0": printer.get("temperature", {}).get("tool0", {}),   # Extrusor principal (actual y target)
         },
         
-        # Información sobre la impresión en curso
+        # Informacion sobre la impresion en curso
         "job": {
-            # Nombre del archivo que se está imprimiendo
+            # Nombre del archivo que se esta imprimiendo
             "file": job.get("job", {}).get("file", {}).get("name", "Sin archivo"),
             # Porcentaje completado (0 a 100)
             "progress": job.get("progress", {}).get("completion", 0),
@@ -68,26 +67,23 @@ def _build_status(raw):
             "time_remaining": job.get("progress", {}).get("printTimeLeft", 0),
         },
         
-        # Mensaje de error si ha ocurrido algún problema crítico
+        # Mensaje de error si ha ocurrido algún problema critico
         "error": raw.get("error"),
     }
 
 
-# Tarea en segundo plano: cada segundo obtiene el estado y lo envía por WebSocket
+# Tarea en segundo plano: cada segundo obtiene el estado y lo envia por WebSocket
 async def broadcast_updates():
     global _previous_printing
 
-    # Bucle infinito que se ejecuta en segundo plano durante toda la vida de la aplicación
+    # Bucle infinito que se ejecuta en segundo plano durante toda la vida de la aplicacion
     while True:
         # Solo consultamos a OctoPrint si hay al menos un cliente (frontend) conectado al WebSocket
         if manager.active_connections:
             try:
-                # Obtenemos el bucle de eventos asíncrono actual de FastAPI
+                # Obtenemos el bucle de eventos asincrono actual de FastAPI
                 loop = asyncio.get_event_loop()
                 
-                # CRÍTICO: obtener_estado_impresora de requests es una función SÍNCRONA (bloqueante).
-                # Si la llamáramos directamente, congelaría todo FastAPI mientras espera la respuesta.
-                # run_in_executor(None, ...) la ejecuta en un hilo secundario (Threadpool) para no bloquear el servidor.
                 raw = await loop.run_in_executor(None, octoprint_client.obtener_estado_impresora)
                 
                 # Limpiamos y formateamos los datos
@@ -98,31 +94,31 @@ async def broadcast_updates():
                     "type": "update",
                     "data": {
                         "status": status,
-                        # Aquí se integrarán las detecciones de errores de visión artificial en el futuro
+                        # Aqui se integraran las detecciones de errores de vision artificial en el futuro
                         "detections": {"has_errors": False, "total_detections": 0, "classes": {}},
                     },
                 })
 
-                # Lógica para detectar si la impresión acaba de terminar
-                # Comprueba si la palabra "print" está en el estado actual (ej: "Printing")
+                # Logica para detectar si la impresion acaba de terminar
+                # Comprueba si la palabra "print" esta en el estado actual (ej: "Printing")
                 currently_printing = "print" in status["state"].lower()
-                # Actualizamos la variable global para la siguiente iteración del bucle
+                # Actualizamos la variable global para la siguiente iteracion del bucle
                 _previous_printing = currently_printing
 
             except Exception as e:
-                # Capturamos cualquier error (caída de red, timeout) para que el bucle infinito no se rompa y muera
+                # Capturamos cualquier error (caida de red, timeout) para que el bucle infinito no se rompa y muera
                 print(f"Error en broadcast: {e}")
 
-        # Esperamos 1 segundo de forma asíncrona antes de volver a consultar
+        # Esperamos 1 segundo de forma asincrona antes de volver a consultar
         # Esto permite que FastAPI atienda otras peticiones REST o de WebSockets mientras tanto
         await asyncio.sleep(1)
 
 
 # ==============================================================================
-# GESTIÓN DEL CICLO DE VIDA DE LA APLICACIÓN (LIFESPAN)
+# GESTIoN DEL CICLO DE VIDA DE LA APLICACIoN (LIFESPAN)
 # ==============================================================================
-# El gestor de contexto 'lifespan' permite definir código que se ejecuta al arrancar
-# y al apagar el servidor FastAPI, reemplazando a los antiguos eventos @app.on_event.
+# Basicamente, hace que se ejecute constantemente el bucle de broadcast
+# y cuando acaba cierra las conexiones limpiamente
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # --- FASE DE INICIO ---
@@ -139,51 +135,49 @@ async def lifespan(app: FastAPI):
         # Esperamos a que la tarea termine de cerrarse
         await task
     except asyncio.CancelledError:
-        # Ignoramos el error de cancelación, ya que es el comportamiento esperado
+        # Ignoramos el error de cancelacion, ya que es el comportamiento esperado
         pass
 
 
 ###########################################
-# INICIALIZACIÓN DE LA APLICACIÓN FASTAPI #
+# INICIALIZACIoN DE LA APLICACIoN FASTAPI #
 ###########################################
 app = FastAPI(
     title="3D Printer Monitor API",
-    description="API para monitorización de impresoras 3D con detección de errores",
+    description="API para monitorizacion de impresoras 3D con deteccion de errores",
     version="2.0.0",
     lifespan=lifespan, # Registramos nuestro gestor del ciclo de vida definido arriba
 )
 
-# Configuración del Middleware CORS (Cross-Origin Resource Sharing)
-# Es imprescindible para que un frontend (ej: Vue, React) alojado en otro puerto/dominio
-# pueda hacer peticiones HTTP/WebSocket a este backend sin ser bloqueado por el navegador.
+# Configuracion del Middleware CORS (Cross-Origin Resource Sharing)
+# necesario para que un frontend pueda hacer peticiones HTTP/WebSocket a este backend sin ser bloqueado por el navegador
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],     # Permite peticiones desde cualquier origen (en producción se suele limitar)
-    allow_credentials=True,  # Permite envío de cookies y cabeceras de autorización
-    allow_methods=["*"],     # Permite todos los verbos HTTP (GET, POST, PUT, DELETE, etc.)
+    allow_origins=["*"],     # Permite peticiones desde cualquier origen
+    allow_credentials=True,  # Permite envio de cookies y cabeceras de autorizacion
+    allow_methods=["*"],     # Permite todos los comandos HTTP (GET, POST, PUT, DELETE, etc.)
     allow_headers=["*"],     # Permite todo tipo de cabeceras personalizadas
 )
 
 
 ##########################################
-# ENDPOINT DE WEBSOCKET (COMUNICACIÓN    #
-# BIDIRECCIONAL EN TIEMPO REAL)          #
+# ENDPOINT DE WEBSOCKET                  #
 ##########################################
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
-    # Aceptamos la conexión entrante y la registramos en nuestro ConnectionManager
+    # Aceptamos la conexion entrante y la registramos en nuestro ConnectionManager
     await manager.connect(websocket)
     try:
-        # Bucle infinito para escuchar los comandos que envía el frontend por este socket
+        # Bucle infinito para escuchar los comandos que envia el frontend por este socket
         while True:
-            # Esperamos de forma asíncrona a recibir un mensaje JSON del cliente
+
             data = await websocket.receive_json()
-            # Extraemos la acción solicitada (ej: {"action": "pause"})
+            # Extraemos la accion solicitada por el usuario
             action = data.get("action")
 
             loop = asyncio.get_event_loop()
             
-            # Mapeamos los strings de acción a sus funciones reales en el cliente de OctoPrint
+            # Obtenemos la accion que vamos a realizar en funcion del comando
             command_map = {
                 "pausar": octoprint_client.pausar_impresion,
                 "reanudar": octoprint_client.reanudar_impresion,
@@ -191,27 +185,26 @@ async def websocket_endpoint(websocket: WebSocket):
                 "iniciar": octoprint_client.iniciar_impresion,
             }
 
-            # Obtenemos la función correspondiente
+            # Obtenemos la funcion correspondiente
             handler = command_map.get(action)
             if handler:
-                # Al igual que antes, las funciones de control de OctoPrint son SÍNCRONAS.
-                # Las ejecutamos con run_in_executor para no bloquear el Event Loop principal.
+                # las ejecutamos con run_in_executor para no bloquear el Event Loop principal
                 success = await loop.run_in_executor(None, handler)
                 
-                # Respondemos al cliente confirmando si el comando se ejecutó con éxito
+                # Respondemos al cliente confirmando si el comando se ejecuto con exito
                 await websocket.send_json({
                     "type": "command_result",
                     "action": action,
                     "success": success,
                 })
     except WebSocketDisconnect:
-        # Si el cliente cierra la pestaña del navegador o pierde conexión,
-        # salta esta excepción y lo eliminamos de la lista de conexiones activas.
+        # Si el cliente cierra la pestaña del navegador o pierde conexion
+        # salta esta excepcion y lo eliminamos de la lista de conexiones activas
         manager.disconnect(websocket)
 
 
 ################################################
-# DEFINICIÓN DE LOS ENDPOINTS DE NUESTRA API ###
+# DEFINICIoN DE LOS ENDPOINTS DE NUESTRA API ###
 ################################################
 @app.get("/")
 async def root():
@@ -244,15 +237,15 @@ async def seleccionar_archivo(filename: str):
         "message": f"Archivo '{filename}' seleccionado" if success else "Error al seleccionar archivo",
     }
 
-# ============================================
-# Ejecución de la aplicación
-# ============================================
+# ############################################
+# Ejecucion de la aplicacion                 #
+# ############################################
 if __name__ == "__main__":
     import sys
     import uvicorn
 
     if not key_management.validar_configuracion():
-        print("Configuración no válida. Corrige los errores e intenta de nuevo.")
+        print("Configuracion no valida. Corrige los errores e intenta de nuevo.")
         sys.exit(1)
 
     uvicorn.run(app, host="0.0.0.0", port=8000) # Definimos aqui el run de uvicorn para no tener que ejecutarlo desde la terminal

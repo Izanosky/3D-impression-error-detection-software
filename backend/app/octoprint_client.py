@@ -1,5 +1,5 @@
 """
-Clase para la gestión de las llamadas a la API de OctoPrint
+Clase para la gestion de las llamadas a la API de OctoPrint
 """
 
 import os
@@ -35,18 +35,18 @@ class OctoPrintClient:
     def obtener_estado_impresora(self):
 
         # Consultamos los dos endpoints de OctoPrint que necesitamos:
-        printer_resp = self._request("GET", "/api/printer")  # Estado físico: temperaturas, estado de la impresora
+        printer_resp = self._request("GET", "/api/printer")  # Estado fisico: temperaturas, estado de la impresora
         job_resp = self._request("GET", "/api/job")           # Estado del trabajo: archivo, progreso, tiempo restante
 
-        # Comprobamos que la respuesta no sea None (fallo de red) y que el código HTTP sea 200 (éxito)
+        # Comprobamos que la respuesta no sea None (fallo de red) y que el codigo HTTP sea 200 (exito)
         printer_ok = printer_resp and printer_resp.status_code == 200
         job_ok = job_resp and job_resp.status_code == 200
 
         return {
-            # Si la petición fue correcta parseamos el JSON, si no devolvemos un diccionario vacío
+            # Si la peticion fue correcta parseamos el JSON, si no devolvemos un diccionario vacio
             "printer": printer_resp.json() if printer_ok else {},
             "job": job_resp.json() if job_ok else {},
-            # Usamos printer_ok como indicador de si la impresora está conectada y accesible
+            # Usamos printer_ok como indicador de si la impresora esta conectada y accesible
             "connected": printer_ok,
         }
     
@@ -94,7 +94,7 @@ class OctoPrintClient:
                 timeout=30,
             )
 
-            # Comprobamos que la respuesta no sea None y que el código HTTP sea 201 (creado)
+            # Comprobamos que la respuesta no sea None y que el codigo HTTP sea 201 (creado)
             if response.status_code == 201:
                 return {"success": True, "data": response.json()}
             return {"success": False, "error": f"Status {response.status_code}"}

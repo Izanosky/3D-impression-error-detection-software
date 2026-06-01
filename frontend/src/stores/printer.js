@@ -14,14 +14,14 @@ export const usePrinterStore = defineStore('printer', () => {
     const urlStream = ref('')
     const mensajeCancelacionAuto = ref('')
 
-    // Array para acumular snapshots de progresión durante la impresión
+    // Array para acumular snapshots de progresion durante la impresion
     const progresion = ref([])
     let intervaloProgresion = null
     let fechaInicio = null
 
     let websocket = null
 
-    // Estado actual de la impresora (se sincroniza con el backend a través de WebSocket)
+    // Estado actual de la impresora (se sincroniza con el backend a traves de WebSocket)
     const estado = ref({
         connected: false,
         state: 'Desconocido',
@@ -55,14 +55,14 @@ export const usePrinterStore = defineStore('printer', () => {
 
     // WebSocket
 
-    // Establece la conexión WebSocket con el backend
+    // Establece la conexion WebSocket con el backend
     function conectarWebSocket() {
         if (!backendUrl.value) return
 
         const base = backendUrl.value.replace(/^https?:\/\//, '') // Elimina el http:// o https:// de la URL
-        websocket = new WebSocket(`ws://${base}/ws`) // Crea la conexión WebSocket con el backend
+        websocket = new WebSocket(`ws://${base}/ws`) // Crea la conexion WebSocket con el backend
 
-        // Se ejecuta cuando se establece la conexión WebSocket
+        // Se ejecuta cuando se establece la conexion WebSocket
         websocket.onopen = () => {
             wsConectado.value = true
             const baseIp = backendUrl.value.split(':')[0]
@@ -82,20 +82,20 @@ export const usePrinterStore = defineStore('printer', () => {
             }
         }
 
-        // Cerramos la conexión del web socket
+        // Cerramos la conexion del web socket
         websocket.onclose = () => {
             wsConectado.value = false
             estado.value.connected = false
             urlStream.value = ''
         }
 
-        // Error en la conexión con el WebSocket
+        // Error en la conexion con el WebSocket
         websocket.onerror = () => {
             wsConectado.value = false
         }
     }
 
-    // Cierra la conexión WebSocket
+    // Cierra la conexion WebSocket
     function desconectarWebSocket(accion = false) {
         if (accion) {
             localStorage.setItem('printer_monitor_auto_connect', 'false')
@@ -105,14 +105,14 @@ export const usePrinterStore = defineStore('printer', () => {
         wsConectado.value = false
     }
 
-    // Envía un comando a OctoPrint a través del WebSocket especificado mediante los argumentos
+    // Envia un comando a OctoPrint a traves del WebSocket especificado mediante los argumentos
     function enviarComando(accion) {
         if (websocket?.readyState === WebSocket.OPEN) {
             websocket.send(JSON.stringify({ action: accion }))
         }
     }
 
-    // ─── Registro de progresión (cada 20 segundos) ─────────────────────
+    // ─── Registro de progresion (cada 20 segundos) ─────────────────────
 
     // Captura un snapshot de temperatura y progreso y lo añade al array
     function capturarSnapshot() {
@@ -144,12 +144,12 @@ export const usePrinterStore = defineStore('printer', () => {
         }
     }
 
-    // ─── Acciones de impresión ────────────────────────────────────────
+    // ─── Acciones de impresion ────────────────────────────────────────
 
-    function pausarImpresion() { enviarComando('pausar') } // Definimos una función para la pausa
-    function reanudarImpresion() { enviarComando('reanudar') } // Definimos una función para reanudar
+    function pausarImpresion() { enviarComando('pausar') } // Definimos una funcion para la pausa
+    function reanudarImpresion() { enviarComando('reanudar') } // Definimos una funcion para reanudar
 
-    // Inicia la impresión y comienza a registrar la progresión
+    // Inicia la impresion y comienza a registrar la progresion
     function iniciarImpresion() {
         if (estado.value.job) estado.value.job.progress = 0
         enviarComando('iniciar')
@@ -158,7 +158,7 @@ export const usePrinterStore = defineStore('printer', () => {
 
     // Registra un evento en el historial (cancelada, error, finalizada)
     async function registrarEnHistorial(tipo) {
-        // Capturamos el último snapshot antes de guardar
+        // Capturamos el ultimo snapshot antes de guardar
         capturarSnapshot()
         detenerRegistroProgresion()
         const nombreArchivo = estado.value.job?.file || 'Desconocido'
@@ -182,20 +182,20 @@ export const usePrinterStore = defineStore('printer', () => {
         }
     }
 
-    // Cancela la impresión manualmente y registra la cancelación
+    // Cancela la impresion manualmente y registra la cancelacion
     async function cancelarImpresion() {
         enviarComando('cancelar')
         await registrarEnHistorial('cancelada')
     }
 
-    // Registra que la impresión se detuvo por un error detectado por la IA
+    // Registra que la impresion se detuvo por un error detectado por la IA
     async function registrarError() {
         await registrarEnHistorial('error')
     }
 
-    // ─── Gestión de archivos ──────────────────────────────────────────
+    // ─── Gestion de archivos ──────────────────────────────────────────
 
-    // Subimos un archivo seleccionado desde el selector de la página
+    // Subimos un archivo seleccionado desde el selector de la pagina
     async function subirGcode(archivo) {
         if (!backendUrl.value) return { success: false, error: 'No hay URL del backend' }
 
@@ -209,7 +209,7 @@ export const usePrinterStore = defineStore('printer', () => {
                 method: 'POST',
                 body: formData
             })
-            const resultado = await respuesta.json() // Obtenemos el resultado de la petición
+            const resultado = await respuesta.json() // Obtenemos el resultado de la peticion
             await obtenerArchivos() // Obtenemos la lista actualizada de archivos
             return resultado
         } catch (error) {
@@ -248,9 +248,9 @@ export const usePrinterStore = defineStore('printer', () => {
         }
     }
 
-    // ─── Conexión y configuración
+    // ─── Conexion y configuracion
 
-    // Nos conectamos a nuestro backend a traves de la IP que se guardó en localStorage
+    // Nos conectamos a nuestro backend a traves de la IP que se guardo en localStorage
     async function conectar() {
         if (!backendUrl.value) return
         desconectarWebSocket(false)
@@ -259,7 +259,7 @@ export const usePrinterStore = defineStore('printer', () => {
         await obtenerArchivos()
     }
 
-    // Limpia el mensaje de cancelación automática
+    // Limpia el mensaje de cancelacion automatica
     function limpiarMensajeCancelacion() {
         mensajeCancelacionAuto.value = ''
     }
@@ -291,12 +291,12 @@ export const usePrinterStore = defineStore('printer', () => {
 
     // ─── Watchers ─────────────────────────────────────────────────────
 
-    // Detecta inicio y fin de impresión
+    // Detecta inicio y fin de impresion
     let printing = false
     watch(estaImprimiendo, async (imprimiendoAhora) => {
         if (!printing && imprimiendoAhora) {
-            // Acaba de empezar a imprimir: iniciar registro de progresión
-            // (por si se inició desde OctoPrint directamente, no desde nuestra UI)
+            // Acaba de empezar a imprimir: iniciar registro de progresion
+            // (por si se inicio desde OctoPrint directamente, no desde nuestra UI)
             if (!intervaloProgresion) {
                 iniciarRegistroProgresion()
             }
