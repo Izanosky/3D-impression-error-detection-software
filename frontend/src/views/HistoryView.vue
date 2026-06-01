@@ -1,5 +1,5 @@
 <template>
-  <div class="flex flex-column p-4 md:p-6 mx-auto w-full gap-4" style="max-width: 960px;">
+  <div class="flex flex-column p-4 md:p-6 mx-auto w-full gap-4" style="max-width: 70%;">
     <main class="flex flex-column gap-4 w-full">
 
       <!-- Cabecera -->
@@ -40,10 +40,10 @@
       <!-- Lista de registros -->
       <div v-else class="card bg-black-alpha-20 border-round-xl border-1 surface-border p-3">
         <DataTable :value="registros" paginator :rows="10" :rowsPerPageOptions="[5, 10, 25, 50]"
-          responsiveLayout="stack" breakpoint="960px" stripedRows class="p-datatable-sm"
+          scrollable responsiveLayout="scroll" stripedRows class="p-datatable-sm"
           emptyMessage="No se encontraron registros en el historial.">
           <!-- Columna Estado -->
-          <Column field="estado" header="Estado" sortable style="width: 15%;">
+          <Column field="estado" header="Estado" sortable style="width: 15%; min-width: 140px;">
             <template #body="{ data }">
               <Tag :value="etiquetaEstado(data.estado)" :severity="severidadEstado(data.estado)"
                 :icon="iconoEstado(data.estado)" class="font-semibold" />
@@ -51,7 +51,7 @@
           </Column>
 
           <!-- Columna Archivo -->
-          <Column field="nombreArchivo" header="Archivo" sortable style="width: 40%; max-width: 0;">
+          <Column field="nombreArchivo" header="Archivo" sortable style="width: 40%; min-width: 200px; max-width: 0;">
             <template #body="{ data }">
               <div class="font-medium text-color text-overflow-ellipsis overflow-hidden white-space-nowrap"
                 v-tooltip.bottom="data.nombreArchivo" style="cursor: help;">
@@ -61,7 +61,7 @@
           </Column>
 
           <!-- Columna Inicio -->
-          <Column field="fechaInicio" header="Inicio" sortable style="width: 15%;">
+          <Column field="fechaInicio" header="Inicio" sortable style="width: 15%; min-width: 140px;">
             <template #body="{ data }">
               <div class="flex align-items-center gap-2 text-color-secondary text-sm">
                 <i class="pi pi-play-circle text-xs text-green-400"></i>
@@ -71,7 +71,7 @@
           </Column>
 
           <!-- Columna Fin -->
-          <Column field="fechaFin" header="Fin" sortable style="width: 15%;">
+          <Column field="fechaFin" header="Fin" sortable style="width: 15%; min-width: 140px;">
             <template #body="{ data }">
               <div class="flex align-items-center gap-2 text-color-secondary text-sm">
                 <i class="pi pi-stop-circle text-xs text-red-400"></i>
@@ -80,25 +80,23 @@
             </template>
           </Column>
 
-          <!-- Columna Gráficas -->
-          <Column header="Gráficas" style="width: 15%; text-align: center;">
+          <!-- Columna Sin Nombre (Botones) -->
+          <Column header="" style="width: 20%; min-width: 180px; text-align: center;">
             <template #body="{ data }">
-              <div class="flex align-items-center justify-content-center gap-1">
-                <Button icon="pi pi-chart-line" severity="warning" text rounded size="small"
-                  v-tooltip.left="'Ver temperaturas'" @click="abrirGraficaTemperatura(data)"
-                  :disabled="!tieneProgresion(data)" />
-                <Button icon="pi pi-percentage" severity="info" text rounded size="small"
-                  v-tooltip.left="'Ver progreso'" @click="abrirGraficaProgreso(data)"
-                  :disabled="!tieneProgresion(data)" />
+              <div class="flex align-items-center justify-content-center">
+                <!-- Botones de gráficas -->
+                <div class="flex gap-1 mr-4">
+                  <Button icon="pi pi-chart-line" severity="warning" text rounded size="small"
+                    v-tooltip.top="'Ver temperaturas'" @click="abrirGraficaTemperatura(data)"
+                    :disabled="!tieneProgresion(data)" />
+                  <Button icon="pi pi-percentage" severity="info" text rounded size="small"
+                    v-tooltip.top="'Ver progreso'" @click="abrirGraficaProgreso(data)"
+                    :disabled="!tieneProgresion(data)" />
+                </div>
+                <!-- Botón eliminar separado -->
+                <Button icon="pi pi-trash" severity="danger" text rounded v-tooltip.top="'Eliminar registro'"
+                  @click="confirmarEliminacion(data)" />
               </div>
-            </template>
-          </Column>
-
-          <!-- Columna Acciones -->
-          <Column header="" style="width: 10%; text-align: center;">
-            <template #body="{ data }">
-              <Button icon="pi pi-trash" severity="danger" text rounded v-tooltip.left="'Eliminar registro'"
-                @click="confirmarEliminacion(data)" />
             </template>
           </Column>
         </DataTable>
@@ -141,8 +139,8 @@
     <!-- ═══════════════════════════════════════════════════════════════ -->
     <!-- Modal: Gráfica de Progreso                                     -->
     <!-- ═══════════════════════════════════════════════════════════════ -->
-    <Dialog v-model:visible="modalProgresoVisible" modal dismissableMask
-      :style="{ width: '90vw', maxWidth: '800px' }" :pt="{ content: { style: 'padding: 0' } }">
+    <Dialog v-model:visible="modalProgresoVisible" modal dismissableMask :style="{ width: '90vw', maxWidth: '800px' }"
+      :pt="{ content: { style: 'padding: 0' } }">
       <template #header>
         <div class="flex align-items-center gap-2">
           <i class="pi pi-percentage text-blue-400 text-xl"></i>
