@@ -2,16 +2,18 @@
   <div class="app-container">
     <Toast />
     <ConfirmDialog />
-    
+
     <!-- Barra de navegación -->
-    <Menubar :model="menuItems" class="border-none border-radius-0 border-bottom-1 surface-border sticky top-0 z-5 shadow-2">
+    <Menubar :model="menuItems"
+      class="border-none border-radius-0 border-bottom-1 surface-border sticky top-0 z-5 shadow-2">
       <template #start>
         <div class="flex align-items-center gap-2 mr-4 cursor-pointer" @click="router.push('/')">
-          <i class="pi pi-print" style="font-size: 1.25rem; background: var(--p-green-400); color: #000; padding: 0.4rem; border-radius: 8px;"></i>
+          <i class="pi pi-print"
+            style="font-size: 1.25rem; background: var(--p-green-400); color: #000; padding: 0.4rem; border-radius: 8px;"></i>
           <span class="text-xl font-bold text-primary">PrintErr</span>
         </div>
       </template>
-      
+
       <template #item="{ item, props, hasSubmenu }">
         <router-link v-if="item.route" v-slot="{ href, navigate }" :to="item.route" custom>
           <a :href="href" v-bind="props.action" @click="navigate" class="flex align-items-center">
@@ -32,7 +34,9 @@
             <Button label="Iniciar Sesión" icon="pi pi-sign-in" @click="router.push('/login')" class="p-button-sm" />
           </template>
           <template v-else>
-            <div class="flex align-items-center cursor-pointer p-1 pr-3 border-round bg-transparent hover:bg-white-alpha-10 transition-colors transition-duration-150" @click="toggleUserMenu" aria-haspopup="true" aria-controls="user_menu">
+            <div
+              class="flex align-items-center cursor-pointer p-1 pr-3 border-round bg-transparent hover:bg-white-alpha-10 transition-colors transition-duration-150"
+              @click="toggleUserMenu" aria-haspopup="true" aria-controls="user_menu">
               <Avatar icon="pi pi-user" shape="circle" class="bg-primary text-white font-bold mr-2" />
               <span class="font-medium text-sm hidden md:block text-color">{{ userStore.userName }}</span>
               <i class="pi pi-angle-down ml-2 text-sm text-color-secondary"></i>
@@ -64,7 +68,6 @@ const userMenuRef = ref(null)
 
 const menuItems = ref([
   { label: 'Inicio', icon: 'pi pi-home', route: '/' },
-  { label: 'Sobre Nosotros', icon: 'pi pi-info-circle', route: '/about' },
   { label: 'Monitorización', icon: 'pi pi-desktop', route: '/monitor' },
   { label: 'Historial', icon: 'pi pi-history', route: '/history' }
 ])

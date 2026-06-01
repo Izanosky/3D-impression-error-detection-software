@@ -48,10 +48,10 @@
       </template>
       <div class="flex flex-column gap-4 pt-3">
         <div class="flex flex-column gap-2">
-          <label class="text-sm font-semibold text-color-secondary uppercase">IP / Dominio del Backend (Defecto)</label>
-          <small class="text-color-secondary mb-2">Dirección por defecto utilizada para conectarse al backend o a
-            OctoPrint
-            desde la vista del Monitor.</small>
+          <label class="text-sm font-semibold text-color-secondary uppercase">IP del Backend</label>
+          <small class="text-color-secondary mb-2">Dirección por defecto utilizada para conectarse al backend desde la
+            vista
+            del Monitor</small>
           <InputGroup>
             <InputGroupAddon class="bg-white-alpha-10 border-none"><i class="pi pi-server text-white"></i>
             </InputGroupAddon>
@@ -59,7 +59,7 @@
           </InputGroup>
         </div>
 
-        <Button label="Actualizar Red" icon="pi pi-cloud-upload" severity="secondary" @click="saveSettings"
+        <Button label="Actualizar IP" icon="pi pi-cloud-upload" severity="secondary" @click="saveSettings"
           class="mt-2 w-full md:w-auto align-self-end w-full" />
       </div>
     </Panel>
