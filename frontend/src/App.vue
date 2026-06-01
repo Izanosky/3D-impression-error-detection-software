@@ -30,6 +30,17 @@
 
       <template #end>
         <div class="flex align-items-center gap-3">
+          <!-- Indicador de estado de la impresora -->
+          <div v-if="userStore.currentUser"
+            class="flex align-items-center gap-2 px-2 py-1 border-round bg-white-alpha-10 cursor-default"
+            v-tooltip.bottom="store.estado.connected ? 'Impresora conectada' : 'Impresora desconectada'">
+            <span class="status-dot" :class="store.estado.connected ? 'status-online' : 'status-offline'"></span>
+            <span class="text-xs font-semibold hidden md:block"
+              :class="store.estado.connected ? 'text-green-400' : 'text-red-400'">
+              {{ store.estado.connected ? 'Conectada' : 'Desconectada' }}
+            </span>
+          </div>
+
           <template v-if="!userStore.currentUser">
             <Button label="Iniciar Sesión" icon="pi pi-sign-in" @click="router.push('/login')" class="p-button-sm" />
           </template>
@@ -118,5 +129,29 @@ onUnmounted(() => {
 
 :deep(.p-menubar) {
   padding: 0.5rem 1.5rem;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.status-online {
+  background-color: #4ade80;
+  box-shadow: 0 0 6px rgba(74, 222, 128, 0.6);
+  animation: pulse-green 2s ease-in-out infinite;
+}
+
+.status-offline {
+  background-color: #f87171;
+  box-shadow: 0 0 4px rgba(248, 113, 113, 0.4);
+}
+
+@keyframes pulse-green {
+  0%, 100% { box-shadow: 0 0 4px rgba(74, 222, 128, 0.4); }
+  50% { box-shadow: 0 0 10px rgba(74, 222, 128, 0.8); }
 }
 </style>

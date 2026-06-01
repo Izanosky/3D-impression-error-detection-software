@@ -158,7 +158,16 @@ export const usePrinterStore = defineStore('printer', () => {
         detenerRegistroProgresion()
         const nombreArchivo = estado.value.job?.file || 'Desconocido'
         const datosProgresion = [...progresion.value]
-        const inicio = fechaInicio
+        // Intentamos usar fechaInicio; si no existe, derivamos del primer snapshot
+        // o del tiempo transcurrido que reporta OctoPrint
+        let inicio = fechaInicio
+        if (!inicio && datosProgresion.length > 0) {
+            inicio = datosProgresion[0].t
+        }
+        if (!inicio) {
+            const elapsed = estado.value.job?.time_elapsed || 0
+            inicio = Date.now() - (elapsed * 1000)
+        }
         progresion.value = []
         fechaInicio = null
         try {
@@ -291,7 +300,7 @@ export const usePrinterStore = defineStore('printer', () => {
             }
         }
         printing = imprimiendoAhora
-    })
+    }, { immediate: true })
 
     // Sincroniza la IP desde el perfil del usuario al hacer login
     watch(() => userStore.currentUser, async (usuario) => {
