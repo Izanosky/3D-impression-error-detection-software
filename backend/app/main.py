@@ -217,13 +217,6 @@ async def websocket_endpoint(websocket: WebSocket):
 async def root():
     return {"message": "3D Printer Monitor API", "status": "running", "websocket": "/ws"}
 
-# Endpoint que nos proporciona el estado actual de la impresora
-@app.get("/api/estado")
-async def obtener_estado():
-    loop = asyncio.get_event_loop()
-    raw = await loop.run_in_executor(None, octoprint_client.obtener_estado_impresora)
-    return _build_status(raw)
-
 # Endpoint para subir archivos gcode a OctoPrint
 @app.post("/api/subir")
 async def subir_gcode(file: UploadFile):
