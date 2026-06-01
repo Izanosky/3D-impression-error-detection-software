@@ -14,6 +14,10 @@ export const usePrinterStore = defineStore('printer', () => {
     const urlStream = ref('')
     const mensajeCancelacionAuto = ref('')
 
+    // Array para acumular snapshots de progresión durante la impresión
+    const progresion = ref([])
+    let intervaloProgresion = null
+
     let websocket = null
 
     // Estado actual de la impresora (se sincroniza con el backend a través de WebSocket)
@@ -103,17 +107,58 @@ export const usePrinterStore = defineStore('printer', () => {
         }
     }
 
+    // ─── Registro de progresión (cada 20 segundos) ─────────────────────
+
+    // Captura un snapshot de temperatura y progreso y lo añade al array
+    function capturarSnapshot() {
+        const temps = estado.value.temperatures || {}
+        const progreso = estado.value.job?.progress || 0
+        progresion.value.push({
+            t: Date.now(),
+            tempExtrusor: temps.tool0?.actual ?? null,
+            tempCama: temps.bed?.actual ?? null,
+            porcentaje: Math.round(progreso * 100) / 100,
+        })
+    }
+
+    // Inicia el intervalo de captura de snapshots
+    function iniciarRegistroProgresion() {
+        detenerRegistroProgresion()
+        progresion.value = []
+        // Capturar el primer snapshot inmediatamente
+        capturarSnapshot()
+        intervaloProgresion = setInterval(capturarSnapshot, 20000) // cada 20s
+    }
+
+    // Detiene el intervalo de captura
+    function detenerRegistroProgresion() {
+        if (intervaloProgresion) {
+            clearInterval(intervaloProgresion)
+            intervaloProgresion = null
+        }
+    }
+
     // ─── Acciones de impresión ────────────────────────────────────────
 
     function pausarImpresion() { enviarComando('pause') } // Definimos una función para la pausa
     function reanudarImpresion() { enviarComando('resume') } // Definimos una función para reanudar
-    function iniciarImpresion() { enviarComando('start') } // Definimos una función para iniciar
+
+    // Inicia la impresión y comienza a registrar la progresión
+    function iniciarImpresion() {
+        enviarComando('start')
+        iniciarRegistroProgresion()
+    }
 
     // Registra un evento en el historial (cancelada, error, finalizada)
     async function registrarEnHistorial(tipo) {
+        // Capturamos el último snapshot antes de guardar
+        capturarSnapshot()
+        detenerRegistroProgresion()
         const nombreArchivo = estado.value.job?.file || 'Desconocido'
+        const datosProgresion = [...progresion.value]
+        progresion.value = []
         try {
-            await guardarRegistro(tipo, nombreArchivo)
+            await guardarRegistro(tipo, nombreArchivo, datosProgresion)
         } catch (e) {
             console.error(`[Historial] Error registrando ${tipo}:`, e)
         }
@@ -224,10 +269,18 @@ export const usePrinterStore = defineStore('printer', () => {
 
     // ─── Watchers ─────────────────────────────────────────────────────
 
-    // Detecta fin de impresión exitosa cuando el progreso es mayor o igual al 99%
+    // Detecta inicio y fin de impresión
     let printing = false
     watch(estaImprimiendo, async (imprimiendoAhora) => {
+        if (!printing && imprimiendoAhora) {
+            // Acaba de empezar a imprimir: iniciar registro de progresión
+            // (por si se inició desde OctoPrint directamente, no desde nuestra UI)
+            if (!intervaloProgresion) {
+                iniciarRegistroProgresion()
+            }
+        }
         if (printing && !imprimiendoAhora) {
+            // Acaba de terminar de imprimir
             const progreso = estado.value.job?.progress || 0
             if (progreso >= 99) {
                 await registrarEnHistorial('finalizada')

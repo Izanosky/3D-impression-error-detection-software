@@ -51,7 +51,7 @@
           </Column>
 
           <!-- Columna Archivo -->
-          <Column field="nombreArchivo" header="Archivo" sortable style="width: 50%; max-width: 0;">
+          <Column field="nombreArchivo" header="Archivo" sortable style="width: 40%; max-width: 0;">
             <template #body="{ data }">
               <div class="font-medium text-color text-overflow-ellipsis overflow-hidden white-space-nowrap"
                 v-tooltip.bottom="data.nombreArchivo" style="cursor: help;">
@@ -61,11 +61,25 @@
           </Column>
 
           <!-- Columna Fecha -->
-          <Column field="fechaFin" header="Fecha" sortable style="width: 25%;">
+          <Column field="fechaFin" header="Fecha" sortable style="width: 20%;">
             <template #body="{ data }">
               <div class="flex align-items-center gap-2 text-color-secondary text-sm">
                 <i class="pi pi-calendar text-xs"></i>
                 <span>{{ formatearFecha(data.fechaFin) }}</span>
+              </div>
+            </template>
+          </Column>
+
+          <!-- Columna Gráficas -->
+          <Column header="Gráficas" style="width: 15%; text-align: center;">
+            <template #body="{ data }">
+              <div class="flex align-items-center justify-content-center gap-1">
+                <Button icon="pi pi-chart-line" severity="warning" text rounded size="small"
+                  v-tooltip.left="'Ver temperaturas'" @click="abrirGraficaTemperatura(data)"
+                  :disabled="!tieneProgresion(data)" />
+                <Button icon="pi pi-percentage" severity="info" text rounded size="small"
+                  v-tooltip.left="'Ver progreso'" @click="abrirGraficaProgreso(data)"
+                  :disabled="!tieneProgresion(data)" />
               </div>
             </template>
           </Column>
@@ -81,6 +95,60 @@
       </div>
 
     </main>
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- Modal: Gráfica de Temperatura                                  -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <Dialog v-model:visible="modalTemperaturaVisible" modal dismissableMask
+      :style="{ width: '90vw', maxWidth: '800px' }" :pt="{ content: { style: 'padding: 0' } }">
+      <template #header>
+        <div class="flex align-items-center gap-2">
+          <i class="pi pi-chart-line text-orange-400 text-xl"></i>
+          <span class="font-bold text-lg">Progresión de Temperatura</span>
+        </div>
+      </template>
+      <div class="p-4">
+        <div class="text-sm text-color-secondary mb-3 flex align-items-center gap-2">
+          <i class="pi pi-file text-xs"></i>
+          <span>{{ registroSeleccionado?.nombreArchivo }}</span>
+        </div>
+        <div style="position: relative; height: 380px;">
+          <Line v-if="datosGraficaTemperatura" :data="datosGraficaTemperatura" :options="opcionesGraficaTemperatura" />
+        </div>
+        <div class="flex justify-content-center gap-4 mt-3">
+          <div class="flex align-items-center gap-2">
+            <span class="inline-block border-round" style="width: 12px; height: 12px; background: #fb923c;"></span>
+            <span class="text-sm text-color-secondary">Extrusor</span>
+          </div>
+          <div class="flex align-items-center gap-2">
+            <span class="inline-block border-round" style="width: 12px; height: 12px; background: #f87171;"></span>
+            <span class="text-sm text-color-secondary">Cama Caliente</span>
+          </div>
+        </div>
+      </div>
+    </Dialog>
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- Modal: Gráfica de Progreso                                     -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <Dialog v-model:visible="modalProgresoVisible" modal dismissableMask
+      :style="{ width: '90vw', maxWidth: '800px' }" :pt="{ content: { style: 'padding: 0' } }">
+      <template #header>
+        <div class="flex align-items-center gap-2">
+          <i class="pi pi-percentage text-blue-400 text-xl"></i>
+          <span class="font-bold text-lg">Progresión de Porcentaje</span>
+        </div>
+      </template>
+      <div class="p-4">
+        <div class="text-sm text-color-secondary mb-3 flex align-items-center gap-2">
+          <i class="pi pi-file text-xs"></i>
+          <span>{{ registroSeleccionado?.nombreArchivo }}</span>
+        </div>
+        <div style="position: relative; height: 380px;">
+          <Line v-if="datosGraficaProgreso" :data="datosGraficaProgreso" :options="opcionesGraficaProgreso" />
+        </div>
+      </div>
+    </Dialog>
   </div>
 </template>
 
@@ -89,6 +157,21 @@ import { ref, onMounted } from 'vue'
 import { useUserStore } from '../stores/user'
 import { obtenerHistorial, eliminarRegistro } from '../services/historyService'
 import { useConfirm } from 'primevue/useconfirm'
+import { Line } from 'vue-chartjs'
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler,
+} from 'chart.js'
+
+// Registrar los componentes de Chart.js necesarios
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler)
 
 // Accedemos al store del usuario para saber si hay alguien logueado
 const userStore = useUserStore()
@@ -101,6 +184,13 @@ const registros = ref([])
 const cargando = ref(false)
 // Mensaje de error si algo falla al cargar
 const mensajeError = ref(null)
+
+// Estado de los modales de gráficas
+const modalTemperaturaVisible = ref(false)
+const modalProgresoVisible = ref(false)
+const registroSeleccionado = ref(null)
+const datosGraficaTemperatura = ref(null)
+const datosGraficaProgreso = ref(null)
 
 // En cuanto se carga la página, pedimos el historial a Firebase
 onMounted(() => {
@@ -149,6 +239,15 @@ function confirmarEliminacion(registro) {
       }
     }
   })
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Utilidades para la tabla
+// ═══════════════════════════════════════════════════════════════
+
+// Comprueba si un registro tiene datos de progresión
+function tieneProgresion(registro) {
+  return registro.progresion && registro.progresion.length > 0
 }
 
 // Con esta función ponemos el estado de cada impresión en formato texto para mostrarlo en la tabla
@@ -201,5 +300,221 @@ function formatearFecha(timestamp) {
     hour: '2-digit',
     minute: '2-digit'
   })
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Gráficas
+// ═══════════════════════════════════════════════════════════════
+
+// Convierte los timestamps de los snapshots a etiquetas de tiempo relativo
+function generarEtiquetasTiempo(progresion) {
+  if (!progresion || progresion.length === 0) return []
+  const inicio = progresion[0].t
+  return progresion.map(s => {
+    const segs = Math.round((s.t - inicio) / 1000)
+    const mins = Math.floor(segs / 60)
+    const secs = segs % 60
+    if (mins >= 60) {
+      const hrs = Math.floor(mins / 60)
+      const m = mins % 60
+      return `${hrs}h ${m.toString().padStart(2, '0')}m`
+    }
+    return `${mins}:${secs.toString().padStart(2, '0')}`
+  })
+}
+
+// Estilo base compartido para ambas gráficas
+const estiloBaseGrafica = {
+  responsive: true,
+  maintainAspectRatio: false,
+  interaction: {
+    mode: 'index',
+    intersect: false,
+  },
+  plugins: {
+    legend: {
+      display: false,
+    },
+    tooltip: {
+      backgroundColor: 'rgba(15, 15, 25, 0.95)',
+      titleColor: '#e2e8f0',
+      bodyColor: '#cbd5e1',
+      borderColor: 'rgba(99, 102, 241, 0.3)',
+      borderWidth: 1,
+      cornerRadius: 8,
+      padding: 12,
+      bodySpacing: 6,
+      titleFont: { weight: 'bold', size: 13 },
+      bodyFont: { size: 12 },
+    },
+  },
+  scales: {
+    x: {
+      grid: {
+        color: 'rgba(255, 255, 255, 0.06)',
+        drawBorder: false,
+      },
+      ticks: {
+        color: '#94a3b8',
+        font: { size: 11 },
+        maxRotation: 45,
+        maxTicksLimit: 15,
+      },
+    },
+    y: {
+      grid: {
+        color: 'rgba(255, 255, 255, 0.06)',
+        drawBorder: false,
+      },
+      ticks: {
+        color: '#94a3b8',
+        font: { size: 11 },
+      },
+    },
+  },
+}
+
+// Opciones específicas de la gráfica de temperatura
+const opcionesGraficaTemperatura = {
+  ...estiloBaseGrafica,
+  plugins: {
+    ...estiloBaseGrafica.plugins,
+    tooltip: {
+      ...estiloBaseGrafica.plugins.tooltip,
+      callbacks: {
+        label: (ctx) => `${ctx.dataset.label}: ${ctx.parsed.y?.toFixed(1) ?? '--'} °C`,
+      },
+    },
+  },
+  scales: {
+    ...estiloBaseGrafica.scales,
+    y: {
+      ...estiloBaseGrafica.scales.y,
+      title: {
+        display: true,
+        text: 'Temperatura (°C)',
+        color: '#94a3b8',
+        font: { size: 12, weight: 'bold' },
+      },
+    },
+    x: {
+      ...estiloBaseGrafica.scales.x,
+      title: {
+        display: true,
+        text: 'Tiempo transcurrido',
+        color: '#94a3b8',
+        font: { size: 12, weight: 'bold' },
+      },
+    },
+  },
+}
+
+// Opciones específicas de la gráfica de progreso
+const opcionesGraficaProgreso = {
+  ...estiloBaseGrafica,
+  plugins: {
+    ...estiloBaseGrafica.plugins,
+    tooltip: {
+      ...estiloBaseGrafica.plugins.tooltip,
+      callbacks: {
+        label: (ctx) => `Progreso: ${ctx.parsed.y?.toFixed(1) ?? '--'}%`,
+      },
+    },
+  },
+  scales: {
+    ...estiloBaseGrafica.scales,
+    y: {
+      ...estiloBaseGrafica.scales.y,
+      min: 0,
+      max: 100,
+      title: {
+        display: true,
+        text: 'Progreso (%)',
+        color: '#94a3b8',
+        font: { size: 12, weight: 'bold' },
+      },
+    },
+    x: {
+      ...estiloBaseGrafica.scales.x,
+      title: {
+        display: true,
+        text: 'Tiempo transcurrido',
+        color: '#94a3b8',
+        font: { size: 12, weight: 'bold' },
+      },
+    },
+  },
+}
+
+// Abre el modal de la gráfica de temperatura y construye los datos
+function abrirGraficaTemperatura(registro) {
+  registroSeleccionado.value = registro
+  const prog = registro.progresion || []
+  const etiquetas = generarEtiquetasTiempo(prog)
+
+  datosGraficaTemperatura.value = {
+    labels: etiquetas,
+    datasets: [
+      {
+        label: 'Extrusor',
+        data: prog.map(s => s.tempExtrusor),
+        borderColor: '#fb923c',
+        backgroundColor: 'rgba(251, 146, 60, 0.1)',
+        borderWidth: 2.5,
+        pointRadius: prog.length > 50 ? 0 : 3,
+        pointHoverRadius: 5,
+        pointBackgroundColor: '#fb923c',
+        tension: 0.3,
+        fill: true,
+      },
+      {
+        label: 'Cama Caliente',
+        data: prog.map(s => s.tempCama),
+        borderColor: '#f87171',
+        backgroundColor: 'rgba(248, 113, 113, 0.08)',
+        borderWidth: 2.5,
+        pointRadius: prog.length > 50 ? 0 : 3,
+        pointHoverRadius: 5,
+        pointBackgroundColor: '#f87171',
+        tension: 0.3,
+        fill: true,
+      },
+    ],
+  }
+  modalTemperaturaVisible.value = true
+}
+
+// Abre el modal de la gráfica de progreso y construye los datos
+function abrirGraficaProgreso(registro) {
+  registroSeleccionado.value = registro
+  const prog = registro.progresion || []
+  const etiquetas = generarEtiquetasTiempo(prog)
+
+  datosGraficaProgreso.value = {
+    labels: etiquetas,
+    datasets: [
+      {
+        label: 'Progreso',
+        data: prog.map(s => s.porcentaje),
+        borderColor: '#60a5fa',
+        backgroundColor: (ctx) => {
+          const chart = ctx.chart
+          const { ctx: context, chartArea } = chart
+          if (!chartArea) return 'rgba(96, 165, 250, 0.1)'
+          const gradient = context.createLinearGradient(0, chartArea.top, 0, chartArea.bottom)
+          gradient.addColorStop(0, 'rgba(96, 165, 250, 0.25)')
+          gradient.addColorStop(1, 'rgba(96, 165, 250, 0.02)')
+          return gradient
+        },
+        borderWidth: 2.5,
+        pointRadius: prog.length > 50 ? 0 : 3,
+        pointHoverRadius: 5,
+        pointBackgroundColor: '#60a5fa',
+        tension: 0.3,
+        fill: true,
+      },
+    ],
+  }
+  modalProgresoVisible.value = true
 }
 </script>

@@ -17,12 +17,14 @@ import { getCurrentUserUUID } from './authService'
 const colRef = collection(db, 'historial_impresiones')
 
 // Función para guardar una registro en el historial de impresiones
-export const guardarRegistro = (estado, nombreArchivo) =>
+// progresion: array de snapshots { t, tempExtrusor, tempCama, porcentaje }
+export const guardarRegistro = (estado, nombreArchivo, progresion = []) =>
     addDoc(colRef, {
         userId: getCurrentUserUUID(),
         estado,
         nombreArchivo: nombreArchivo || 'Desconocido',
         fechaFin: Timestamp.now(),
+        progresion,
     })
 
 
