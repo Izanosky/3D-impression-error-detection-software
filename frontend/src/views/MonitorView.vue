@@ -105,13 +105,15 @@
               class="relative w-full flex align-items-center justify-content-center bg-black overflow-hidden border-round-xl border-1 surface-border shadow-4 p-2"
               style="aspect-ratio: 16/9;">
               <!-- MJPEG Stream de la cámara -->
-              <img ref="imagenCamara" v-if="store.urlStream" :src="store.urlStream" crossorigin="anonymous"
+              <img ref="imagenCamara" v-if="store.urlStream && camaraDisponible" :src="store.urlStream" crossorigin="anonymous"
                 alt="Vista de cámara" class="w-full h-full block border-round" style="object-fit: contain;"
                 @error="alErrorImagen" />
               <div v-else
                 class="text-color-secondary text-xl flex flex-column align-items-center justify-content-center w-full h-full gap-3">
                 <i class="pi pi-camera" style="font-size: 4rem"></i>
-                <span>Cámara no disponible</span>
+                <span v-if="store.urlStream && !camaraDisponible">No se reciben imágenes de la cámara</span>
+                <span v-else>Cámara no disponible</span>
+                <span v-if="store.urlStream && !camaraDisponible" class="text-sm text-color-secondary opacity-70">La detección de errores está desactivada</span>
               </div>
 
               <!-- Canvas oculto para capturar frames de la cámara -->
@@ -158,9 +160,9 @@
             <div class="flex flex-column gap-3 bg-white-alpha-10 p-3 border-round">
               <div class="flex justify-content-between align-items-center">
                 <span class="text-color-secondary text-xs font-semibold uppercase">Progreso</span>
-                <span class="font-bold text-primary">{{ Math.round(store.estado.progress?.completion || 0) }}%</span>
+                <span class="font-bold text-primary">{{ Math.round(store.estado.job?.progress || 0) }}%</span>
               </div>
-              <ProgressBar :value="store.estado.progress?.completion || 0" :showValue="false"
+              <ProgressBar :value="store.estado.job?.progress || 0" :showValue="false"
                 style="height: 8px; margin-top: -8px;" />
 
               <div class="flex justify-content-between border-top-1 surface-border pt-2">
@@ -211,6 +213,7 @@ const archivoSeleccionado = ref('')
 // Referencias al elemento de la cámara y al canvas de captura
 const imagenCamara = ref(null)
 const canvasCaptura = ref(null)
+const camaraDisponible = ref(true)
 let intervaloInferencia = null
 let procesando = false
 
@@ -219,7 +222,7 @@ onMounted(() => {
 
   // Cada 2s capturamos un frame de la cámara y lo pasamos al modelo para detectar errores
   intervaloInferencia = setInterval(async () => {
-    if (!imagenCamara.value || !canvasCaptura.value || !store.urlStream || procesando) return
+    if (!imagenCamara.value || !canvasCaptura.value || !store.urlStream || !camaraDisponible.value || procesando) return
     if (!store.estaImprimiendo) return
 
     procesando = true
@@ -267,14 +270,16 @@ onUnmounted(() => {
 })
 
 // Manejar error de carga de la imagen de la cámara
-function alErrorImagen(e) {
-  e.target.style.display = 'none'
-  const contenedor = e.target.parentElement
-  if (contenedor) {
-    const fallback = contenedor.querySelector('.text-color-secondary')
-    if (fallback) fallback.style.display = 'flex'
-  }
+function alErrorImagen() {
+  camaraDisponible.value = false
 }
+
+// Cuando cambia la URL del stream (reconexión), volvemos a intentar mostrar la cámara
+watch(() => store.urlStream, (nuevaUrl) => {
+  if (nuevaUrl) {
+    camaraDisponible.value = true
+  }
+})
 
 // Sincronizar la IP del input con la del store
 watch(() => store.backendUrl, (nuevaUrl) => {

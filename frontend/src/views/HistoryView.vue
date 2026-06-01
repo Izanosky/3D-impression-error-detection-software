@@ -60,11 +60,21 @@
             </template>
           </Column>
 
-          <!-- Columna Fecha -->
-          <Column field="fechaFin" header="Fecha" sortable style="width: 20%;">
+          <!-- Columna Inicio -->
+          <Column field="fechaInicio" header="Inicio" sortable style="width: 15%;">
             <template #body="{ data }">
               <div class="flex align-items-center gap-2 text-color-secondary text-sm">
-                <i class="pi pi-calendar text-xs"></i>
+                <i class="pi pi-play-circle text-xs text-green-400"></i>
+                <span>{{ data.fechaInicio ? formatearFecha(data.fechaInicio) : '—' }}</span>
+              </div>
+            </template>
+          </Column>
+
+          <!-- Columna Fin -->
+          <Column field="fechaFin" header="Fin" sortable style="width: 15%;">
+            <template #body="{ data }">
+              <div class="flex align-items-center gap-2 text-color-secondary text-sm">
+                <i class="pi pi-stop-circle text-xs text-red-400"></i>
                 <span>{{ formatearFecha(data.fechaFin) }}</span>
               </div>
             </template>

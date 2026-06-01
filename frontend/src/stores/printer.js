@@ -17,6 +17,7 @@ export const usePrinterStore = defineStore('printer', () => {
     // Array para acumular snapshots de progresión durante la impresión
     const progresion = ref([])
     let intervaloProgresion = null
+    let fechaInicio = null
 
     let websocket = null
 
@@ -125,6 +126,7 @@ export const usePrinterStore = defineStore('printer', () => {
     function iniciarRegistroProgresion() {
         detenerRegistroProgresion()
         progresion.value = []
+        fechaInicio = Date.now()
         // Capturar el primer snapshot inmediatamente
         capturarSnapshot()
         intervaloProgresion = setInterval(capturarSnapshot, 20000) // cada 20s
@@ -156,9 +158,11 @@ export const usePrinterStore = defineStore('printer', () => {
         detenerRegistroProgresion()
         const nombreArchivo = estado.value.job?.file || 'Desconocido'
         const datosProgresion = [...progresion.value]
+        const inicio = fechaInicio
         progresion.value = []
+        fechaInicio = null
         try {
-            await guardarRegistro(tipo, nombreArchivo, datosProgresion)
+            await guardarRegistro(tipo, nombreArchivo, datosProgresion, inicio)
         } catch (e) {
             console.error(`[Historial] Error registrando ${tipo}:`, e)
         }

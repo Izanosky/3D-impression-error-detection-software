@@ -18,11 +18,13 @@ const colRef = collection(db, 'historial_impresiones')
 
 // Función para guardar una registro en el historial de impresiones
 // progresion: array de snapshots { t, tempExtrusor, tempCama, porcentaje }
-export const guardarRegistro = (estado, nombreArchivo, progresion = []) =>
+// fechaInicioMs: timestamp en milisegundos del inicio de la impresión
+export const guardarRegistro = (estado, nombreArchivo, progresion = [], fechaInicioMs = null) =>
     addDoc(colRef, {
         userId: getCurrentUserUUID(),
         estado,
         nombreArchivo: nombreArchivo || 'Desconocido',
+        fechaInicio: fechaInicioMs ? Timestamp.fromMillis(fechaInicioMs) : null,
         fechaFin: Timestamp.now(),
         progresion,
     })
