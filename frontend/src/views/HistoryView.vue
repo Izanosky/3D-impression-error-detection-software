@@ -102,6 +102,73 @@
         </DataTable>
       </div>
 
+      <!-- Panel de Estadísticas -->
+      <Panel v-if="registros.length > 0" header="Estadísticas de Impresión" class="shadow-4 mt-4" :pt="{
+        root: { class: 'bg-black-alpha-20 border-round-xl border-1 surface-border' },
+        header: { class: 'bg-transparent border-none text-white p-4 pb-0' },
+        content: { class: 'bg-transparent border-none p-4' }
+      }">
+        <div class="grid align-items-stretch">
+          <!-- Total Impresiones -->
+          <div class="col-12 sm:col-6 lg:col-2 flex">
+            <Card class="bg-black-alpha-10 border-round-xl border-1 surface-border w-full flex flex-column" :pt="{ body: { class: 'flex-grow-1 flex flex-column justify-content-center align-items-center text-center p-4' }, content: { class: 'm-0 p-0' } }">
+              <template #title>
+                <i class="pi pi-print text-primary" style="font-size: 2.5rem;"></i>
+              </template>
+              <template #subtitle>
+                <span class="text-color-secondary text-sm">Total Impresiones</span>
+              </template>
+              <template #content>
+                <span class="text-3xl font-bold text-white">{{ totalImpresiones }}</span>
+              </template>
+            </Card>
+          </div>
+
+          <!-- Tiempo Medio -->
+          <div class="col-12 sm:col-6 lg:col-3 flex">
+            <Card class="bg-black-alpha-10 border-round-xl border-1 surface-border w-full flex flex-column" :pt="{ body: { class: 'flex-grow-1 flex flex-column justify-content-center align-items-center text-center p-4' }, content: { class: 'm-0 p-0' } }">
+              <template #title>
+                <i class="pi pi-clock text-primary" style="font-size: 2.5rem;"></i>
+              </template>
+              <template #subtitle>
+                <span class="text-color-secondary text-sm">Tiempo Medio</span>
+              </template>
+              <template #content>
+                <span class="text-3xl font-bold text-white">{{ tiempoMedio }}</span>
+              </template>
+            </Card>
+          </div>
+
+          <!-- Errores Detectados -->
+          <div class="col-12 sm:col-6 lg:col-3 flex">
+            <Card class="bg-black-alpha-10 border-round-xl border-1 surface-border w-full flex flex-column" :pt="{ body: { class: 'flex-grow-1 flex flex-column justify-content-center align-items-center text-center p-4' }, content: { class: 'm-0 p-0' } }">
+              <template #title>
+                <i class="pi pi-exclamation-triangle text-red-400" style="font-size: 2.5rem;"></i>
+              </template>
+              <template #subtitle>
+                <span class="text-color-secondary text-sm">Errores Detectados</span>
+              </template>
+              <template #content>
+                <span class="text-3xl font-bold text-white">{{ erroresDetectados }}</span>
+              </template>
+            </Card>
+          </div>
+
+          <!-- Distribución de Estados -->
+          <div class="col-12 sm:col-6 lg:col-4 flex">
+            <Card class="bg-black-alpha-10 border-round-xl border-1 surface-border w-full flex flex-column" :pt="{ body: { class: 'flex-grow-1 flex flex-column justify-content-center align-items-center p-4' }, content: { class: 'm-0 p-0 w-full' } }">
+              <template #subtitle>
+                <span class="text-color-secondary font-semibold text-center w-full block mb-3">Distribución de Estados</span>
+              </template>
+              <template #content>
+                <div style="position: relative; height: 160px; width: 100%;">
+                  <Chart type="doughnut" :data="datosGraficaEstados" :options="opcionesGraficaEstados" class="h-full w-full" />
+                </div>
+              </template>
+            </Card>
+          </div>
+        </div>
+      </Panel>
     </main>
 
     <!-- ═══════════════════════════════════════════════════════════════ -->
@@ -161,10 +228,11 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useUserStore } from '../stores/user'
 import { obtenerHistorial, eliminarRegistro } from '../services/historyService'
 import { useConfirm } from 'primevue/useconfirm'
+import Chart from 'primevue/chart'
 import { Line } from 'vue-chartjs'
 import {
   Chart as ChartJS,
@@ -525,4 +593,56 @@ function abrirGraficaProgreso(registro) {
   }
   modalProgresoVisible.value = true
 }
+
+// Métricas y Gráficas de Estadísticas
+const totalImpresiones = computed(() => registros.value.length)
+const erroresDetectados = computed(() => registros.value.filter(r => r.estado === 'error').length)
+
+// Función auxiliar para convertir el formato de timestamp de Firestore a Date nativo de JS
+function obtenerFecha(timestamp) {
+  if (!timestamp) return new Date()
+  if (timestamp.toDate) return timestamp.toDate()
+  if (timestamp.seconds) return new Date(timestamp.seconds * 1000)
+  return new Date(timestamp)
+}
+
+const tiempoMedio = computed(() => {
+  const finalizadas = registros.value.filter(r => r.estado === 'finalizada' && r.fechaInicio && r.fechaFin)
+  if (finalizadas.length === 0) return '0h 0m'
+  const totalMs = finalizadas.reduce((acc, r) => acc + (obtenerFecha(r.fechaFin) - obtenerFecha(r.fechaInicio)), 0)
+  const avgMs = totalMs / finalizadas.length
+  const horas = Math.floor(avgMs / (1000 * 60 * 60))
+  const minutos = Math.floor((avgMs % (1000 * 60 * 60)) / (1000 * 60))
+  return `${horas}h ${minutos}m`
+})
+
+const datosGraficaEstados = computed(() => {
+  const finalizadas = registros.value.filter(r => r.estado === 'finalizada').length
+  const canceladas = registros.value.filter(r => r.estado === 'cancelada').length
+  const errores = registros.value.filter(r => r.estado === 'error').length
+  
+  return {
+    labels: ['Finalizadas', 'Canceladas', 'Errores'],
+    datasets: [
+      {
+        data: [finalizadas, canceladas, errores],
+        backgroundColor: ['#4ade80', '#fbbf24', '#f87171'],
+        hoverBackgroundColor: ['#22c55e', '#f59e0b', '#ef4444'],
+        borderWidth: 0
+      }
+    ]
+  }
+})
+
+const opcionesGraficaEstados = ref({
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: {
+      position: 'right',
+      labels: { color: '#e2e8f0', usePointStyle: true, boxWidth: 10 }
+    }
+  }
+})
+
 </script>
