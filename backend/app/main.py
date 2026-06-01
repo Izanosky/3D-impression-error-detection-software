@@ -85,10 +85,10 @@ async def broadcast_updates():
                 # Obtenemos el bucle de eventos asíncrono actual de FastAPI
                 loop = asyncio.get_event_loop()
                 
-                # CRÍTICO: get_printer_status de requests es una función SÍNCRONA (bloqueante).
+                # CRÍTICO: obtener_estado_impresora de requests es una función SÍNCRONA (bloqueante).
                 # Si la llamáramos directamente, congelaría todo FastAPI mientras espera la respuesta.
                 # run_in_executor(None, ...) la ejecuta en un hilo secundario (Threadpool) para no bloquear el servidor.
-                raw = await loop.run_in_executor(None, octoprint_client.get_printer_status)
+                raw = await loop.run_in_executor(None, octoprint_client.obtener_estado_impresora)
                 
                 # Limpiamos y formateamos los datos
                 status = _build_status(raw)
