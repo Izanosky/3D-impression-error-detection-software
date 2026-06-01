@@ -42,9 +42,11 @@
               <span class="text-xs font-semibold text-color-secondary uppercase">Conexión IP</span>
               <div class="flex align-items-center gap-2">
                 <InputText v-model="direccionIp" placeholder="Ej: 192.168.1.100" class="bg-white-alpha-10 flex-1"
-                  :disabled="store.estaImprimiendo || store.estaPausada" />
-                <Button label="Conectar" icon="pi pi-bolt" @click="actualizarIp"
-                  :disabled="store.estaImprimiendo || store.estaPausada || !direccionIp.trim()" />
+                  :disabled="store.estaImprimiendo || store.estaPausada || store.wsConectado" />
+                <Button :label="store.wsConectado ? 'Desconectar' : 'Conectar'"
+                  :icon="store.wsConectado ? 'pi pi-power-off' : 'pi pi-bolt'"
+                  :severity="store.wsConectado ? 'danger' : 'primary'" @click="alternarConexion"
+                  :disabled="store.estaImprimiendo || store.estaPausada || (!store.wsConectado && !direccionIp.trim())" />
               </div>
             </div>
           </div>
@@ -59,7 +61,7 @@
               <span class="text-xs font-semibold text-color-secondary uppercase">Seleccionar Archivos</span>
               <Select v-model="archivoSeleccionado" :options="store.archivosGcode" optionLabel="name" optionValue="name"
                 placeholder="Seleccionar archivo..." class="w-full"
-                :disabled="store.estaImprimiendo || store.estaPausada || store.subiendo" @change="alCambiarArchivo" />
+                :disabled="store.estaImprimiendo || store.estaPausada || store.subiendo || !store.wsConectado" @change="alCambiarArchivo" />
             </div>
 
             <div class="flex flex-column gap-1">
@@ -67,13 +69,14 @@
               <FileUpload mode="basic" auto customUpload @uploader="alSubirArchivo" accept=".gcode,.gco,.g"
                 :chooseLabel="store.subiendo ? 'Subiendo...' : 'Subir Archivo'"
                 :chooseIcon="store.subiendo ? 'pi pi-spin pi-spinner' : 'pi pi-upload'"
-                :disabled="store.estaImprimiendo || store.estaPausada || store.subiendo" class="w-full"
-                pt:chooseButton="w-full p-button-secondary p-button-outlined" />
+                :disabled="store.estaImprimiendo || store.estaPausada || store.subiendo || !store.wsConectado"
+                class="w-full" pt:chooseButton="w-full p-button-secondary p-button-outlined" />
             </div>
 
             <div class="flex flex-column gap-2 mt-auto pt-4">
               <Button v-if="!store.estaImprimiendo && !store.estaPausada" label="Iniciar Impresión" icon="pi pi-play"
-                :disabled="!store.tieneArchivo || store.subiendo" @click="store.iniciarImpresion" />
+                :disabled="!store.tieneArchivo || store.subiendo || !store.wsConectado"
+                @click="store.iniciarImpresion" />
               <Button v-else-if="store.estaImprimiendo && !store.estaPausada" label="Pausar Impresión"
                 icon="pi pi-pause" severity="warning" @click="store.pausarImpresion" />
               <Button v-else label="Reanudar Impresión" icon="pi pi-play" @click="store.reanudarImpresion" />
@@ -105,15 +108,17 @@
               class="relative w-full flex align-items-center justify-content-center bg-black overflow-hidden border-round-xl border-1 surface-border shadow-4 p-2"
               style="aspect-ratio: 16/9;">
               <!-- MJPEG Stream de la cámara -->
-              <img ref="imagenCamara" v-if="store.urlStream && camaraDisponible" :src="store.urlStream" crossorigin="anonymous"
-                alt="Vista de cámara" class="w-full h-full block border-round" style="object-fit: contain;"
-                @error="alErrorImagen" />
+              <img ref="imagenCamara" v-if="store.urlStream && camaraDisponible" :src="store.urlStream"
+                crossorigin="anonymous" alt="Vista de cámara" class="w-full h-full block border-round"
+                style="object-fit: contain;" @error="alErrorImagen" />
               <div v-else
                 class="text-color-secondary text-xl flex flex-column align-items-center justify-content-center w-full h-full gap-3">
                 <i class="pi pi-camera" style="font-size: 4rem"></i>
                 <span v-if="store.urlStream && !camaraDisponible">No se reciben imágenes de la cámara</span>
                 <span v-else>Cámara no disponible</span>
-                <span v-if="store.urlStream && !camaraDisponible" class="text-sm text-color-secondary opacity-70">La detección de errores está desactivada</span>
+                <span v-if="store.urlStream && !camaraDisponible" class="text-sm text-color-secondary opacity-70">La
+                  detección
+                  de errores está desactivada</span>
               </div>
 
               <!-- Canvas oculto para capturar frames de la cámara -->
@@ -308,6 +313,16 @@ async function actualizarIp() {
   url = url.replace(/^https?:\/\//, '')
   store.guardarConfiguracion(url)
   await store.conectar()
+}
+
+// Alternar entre conectar y desconectar
+async function alternarConexion() {
+  if (store.wsConectado) {
+    store.desconectarWebSocket(true)
+    toast.add({ severity: 'info', summary: 'Desconectado', detail: 'Conexión cerrada', life: 3000 })
+  } else {
+    await actualizarIp()
+  }
 }
 
 // Subir un archivo .gcode al servidor

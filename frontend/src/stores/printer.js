@@ -96,9 +96,13 @@ export const usePrinterStore = defineStore('printer', () => {
     }
 
     // Cierra la conexión WebSocket
-    function desconectarWebSocket() {
+    function desconectarWebSocket(accion = false) {
+        if (accion) {
+            localStorage.setItem('printer_monitor_auto_connect', 'false')
+        }
         websocket?.close()
         websocket = null
+        wsConectado.value = false
     }
 
     // Envía un comando a OctoPrint a través del WebSocket especificado mediante los argumentos
@@ -248,7 +252,8 @@ export const usePrinterStore = defineStore('printer', () => {
     // Nos conectamos a nuestro backend a traves de la IP que se guardó en localStorage
     async function conectar() {
         if (!backendUrl.value) return
-        desconectarWebSocket()
+        desconectarWebSocket(false)
+        localStorage.setItem('printer_monitor_auto_connect', 'true')
         conectarWebSocket()
         await obtenerArchivos()
     }
@@ -276,7 +281,10 @@ export const usePrinterStore = defineStore('printer', () => {
         const urlGuardada = localStorage.getItem(STORAGE_KEY)
         if (urlGuardada) {
             backendUrl.value = urlGuardada
-            conectar()
+            const autoConnect = localStorage.getItem('printer_monitor_auto_connect') !== 'false'
+            if (autoConnect) {
+                conectar()
+            }
         }
     }
 
@@ -310,7 +318,8 @@ export const usePrinterStore = defineStore('printer', () => {
             if (datosUsuario?.printerIp) {
                 backendUrl.value = datosUsuario.printerIp
                 localStorage.setItem(STORAGE_KEY, backendUrl.value)
-                if (!wsConectado.value) conectar()
+                const autoConnect = localStorage.getItem('printer_monitor_auto_connect') !== 'false'
+                if (!wsConectado.value && autoConnect) conectar()
             }
         } catch (err) {
             console.error('Error obteniendo IP del perfil del usuario:', err)
