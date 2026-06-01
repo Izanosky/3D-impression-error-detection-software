@@ -133,7 +133,7 @@ export const usePrinterStore = defineStore('printer', () => {
         fechaInicio = Date.now()
         // Capturar el primer snapshot inmediatamente
         capturarSnapshot()
-        intervaloProgresion = setInterval(capturarSnapshot, 20000) // cada 20s
+        intervaloProgresion = setInterval(capturarSnapshot, 10000) // cada 20s
     }
 
     // Detiene el intervalo de captura
