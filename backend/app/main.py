@@ -185,10 +185,10 @@ async def websocket_endpoint(websocket: WebSocket):
             
             # Mapeamos los strings de acción a sus funciones reales en el cliente de OctoPrint
             command_map = {
-                "pause": octoprint_client.pause_print,
-                "resume": octoprint_client.resume_print,
-                "cancel": octoprint_client.cancel_print,
-                "start": octoprint_client.start_print,
+                "pausar": octoprint_client.pausar_impresion,
+                "reanudar": octoprint_client.reanudar_impresion,
+                "cancelar": octoprint_client.cancelar_impresion,
+                "iniciar": octoprint_client.iniciar_impresion,
             }
 
             # Obtenemos la función correspondiente
@@ -218,34 +218,34 @@ async def root():
     return {"message": "3D Printer Monitor API", "status": "running", "websocket": "/ws"}
 
 # Endpoint que nos proporciona el estado actual de la impresora
-@app.get("/api/status")
-async def get_status():
+@app.get("/api/estado")
+async def obtener_estado():
     loop = asyncio.get_event_loop()
-    raw = await loop.run_in_executor(None, octoprint_client.get_printer_status)
+    raw = await loop.run_in_executor(None, octoprint_client.obtener_estado_impresora)
     return _build_status(raw)
 
 # Endpoint para subir archivos gcode a OctoPrint
-@app.post("/api/upload")
-async def upload_gcode(file: UploadFile):
+@app.post("/api/subir")
+async def subir_gcode(file: UploadFile):
     if not file.filename.lower().endswith((".gcode", ".gco", ".g")):
         return {"success": False, "error": "El archivo debe ser .gcode, .gco o .g"}
 
     content = await file.read()
     loop = asyncio.get_event_loop()
-    return await loop.run_in_executor(None, octoprint_client.upload_gcode, content, file.filename)
+    return await loop.run_in_executor(None, octoprint_client.subir_gcode, content, file.filename)
 
 # Endpoint que nos proporciona la lista de archivos gcode que hay subidos en OctoPrint
-@app.get("/api/files")
-async def list_files():
+@app.get("/api/archivos")
+async def listar_archivos():
     loop = asyncio.get_event_loop()
-    files = await loop.run_in_executor(None, octoprint_client.list_files)
+    files = await loop.run_in_executor(None, octoprint_client.listar_archivos)
     return {"files": files}
 
 # Endpoint que selecciona un archivo para imprimir
-@app.post("/api/files/select/{filename}")
-async def select_file(filename: str):
+@app.post("/api/archivos/seleccionar/{filename}")
+async def seleccionar_archivo(filename: str):
     loop = asyncio.get_event_loop()
-    success = await loop.run_in_executor(None, octoprint_client.select_file, filename)
+    success = await loop.run_in_executor(None, octoprint_client.seleccionar_archivo, filename)
     return {
         "success": success,
         "message": f"Archivo '{filename}' seleccionado" if success else "Error al seleccionar archivo",
@@ -258,7 +258,7 @@ if __name__ == "__main__":
     import sys
     import uvicorn
 
-    if not key_management.validate_configuration():
+    if not key_management.validar_configuracion():
         print("Configuración no válida. Corrige los errores e intenta de nuevo.")
         sys.exit(1)
 

@@ -26,16 +26,16 @@ class KeyManagement:
 
 
     # Metodos auxiliares para verificar la URL y la API key
-    def check_octoprint_url(self):
+    def comprobar_url_octoprint(self):
         return bool(self.octoprint_url)
 
-    def check_api_key(self):
+    def comprobar_api_key(self):
         return bool(self.api_key)
 
     # -----------------------------------------------------
 
     # Este metodo lo utilizamos para comprobar si, con las claves introducidas, se puede establecer conexión con OctoPrint correctamente
-    def check_connection(self, retries=5, delay=3):
+    def comprobar_conexion(self, retries=5, delay=3):
         for intento in range(1, retries + 1):
             try:
                 
@@ -67,10 +67,10 @@ class KeyManagement:
 
     # Este metodo lo utilizamos para validar que la configuración introducida es correcta
     # Y de no ser así, nos pedirá por consola que introduzcamos los datos correctos
-    def validate_configuration(self):
+    def validar_configuracion(self):
 
         # Comprobamos si no hay una url ya y pedimos que la introduzca el usuario
-        if not self.check_octoprint_url():
+        if not self.comprobar_url_octoprint():
             while True:
                 new_url = input("URL de OctoPrint (ej: http://localhost): ").strip()
                 if new_url:
@@ -79,7 +79,7 @@ class KeyManagement:
                 print("La URL no puede estar vacía.")
 
         # Lo mismo pero con la API Key
-        if not self.check_api_key():
+        if not self.comprobar_api_key():
             while True:
                 new_key = getpass.getpass("API key de OctoPrint (Settings > API): ").strip()
                 if new_key:
@@ -89,7 +89,7 @@ class KeyManagement:
 
         # Utilizamos el método de antes para comprobar si los datos introducidos son correctos
         print(f"Comprobando conexión con OctoPrint en {self.octoprint_url}...")
-        if not self.check_connection():
+        if not self.comprobar_conexion():
             print("No se pudo conectar a OctoPrint. Verifica que:")
             print("  1. El servicio esté activo: sudo systemctl status octoprint")
             print("  2. La API key sea correcta (Settings > API en OctoPrint)")

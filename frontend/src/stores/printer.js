@@ -146,12 +146,13 @@ export const usePrinterStore = defineStore('printer', () => {
 
     // ─── Acciones de impresión ────────────────────────────────────────
 
-    function pausarImpresion() { enviarComando('pause') } // Definimos una función para la pausa
-    function reanudarImpresion() { enviarComando('resume') } // Definimos una función para reanudar
+    function pausarImpresion() { enviarComando('pausar') } // Definimos una función para la pausa
+    function reanudarImpresion() { enviarComando('reanudar') } // Definimos una función para reanudar
 
     // Inicia la impresión y comienza a registrar la progresión
     function iniciarImpresion() {
-        enviarComando('start')
+        if (estado.value.job) estado.value.job.progress = 0
+        enviarComando('iniciar')
         iniciarRegistroProgresion()
     }
 
@@ -183,7 +184,7 @@ export const usePrinterStore = defineStore('printer', () => {
 
     // Cancela la impresión manualmente y registra la cancelación
     async function cancelarImpresion() {
-        enviarComando('cancel')
+        enviarComando('cancelar')
         await registrarEnHistorial('cancelada')
     }
 
@@ -203,8 +204,8 @@ export const usePrinterStore = defineStore('printer', () => {
             const formData = new FormData()
             formData.append('file', archivo)
 
-            // Hacemos un POST al endpoint /api/upload de nuestro backend para enviar el archivo
-            const respuesta = await fetch(`http://${backendUrl.value}/api/upload`, {
+            // Hacemos un POST al endpoint /api/subir de nuestro backend para enviar el archivo
+            const respuesta = await fetch(`http://${backendUrl.value}/api/subir`, {
                 method: 'POST',
                 body: formData
             })
@@ -223,7 +224,7 @@ export const usePrinterStore = defineStore('printer', () => {
         if (!backendUrl.value) return
         try {
             // Como antes, utilizamos un endpoint definido en nuestro backend para obtener dichos ficheros
-            const respuesta = await fetch(`http://${backendUrl.value}/api/files`)
+            const respuesta = await fetch(`http://${backendUrl.value}/api/archivos`)
             const datos = await respuesta.json()
             archivosGcode.value = datos.files || [] // Obtenemos los ficheros
         } catch (error) {
@@ -236,7 +237,7 @@ export const usePrinterStore = defineStore('printer', () => {
     async function seleccionarArchivo(nombre) {
         if (!backendUrl.value) return false
         try {
-            const respuesta = await fetch(`http://${backendUrl.value}/api/files/select/${nombre}`, {
+            const respuesta = await fetch(`http://${backendUrl.value}/api/archivos/seleccionar/${nombre}`, {
                 method: 'POST'
             })
             const resultado = await respuesta.json()
@@ -305,6 +306,7 @@ export const usePrinterStore = defineStore('printer', () => {
             const progreso = estado.value.job?.progress || 0
             if (progreso >= 99) {
                 await registrarEnHistorial('finalizada')
+                if (estado.value.job) estado.value.job.progress = 0 // Reseteamos el progreso correctamente
             }
         }
         printing = imprimiendoAhora

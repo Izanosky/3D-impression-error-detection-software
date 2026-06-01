@@ -32,7 +32,7 @@ class OctoPrintClient:
             return None
 
     # Metodo que nos devuelve el estado de la impresora
-    def get_printer_status(self):
+    def obtener_estado_impresora(self):
 
         # Consultamos los dos endpoints de OctoPrint que necesitamos:
         printer_resp = self._request("GET", "/api/printer")  # Estado físico: temperaturas, estado de la impresora
@@ -55,22 +55,22 @@ class OctoPrintClient:
     #####################################################################################################
     
     # Metodo que pausa la impresion
-    def pause_print(self):
+    def pausar_impresion(self):
         resp = self._request("POST", "/api/job", json={"command": "pause", "action": "pause"})
         return resp is not None and resp.status_code == 204
 
     # Metodo que reanuda la impresion
-    def resume_print(self):
+    def reanudar_impresion(self):
         resp = self._request("POST", "/api/job", json={"command": "pause", "action": "resume"})
         return resp is not None and resp.status_code == 204
 
     # Metodo que inicia la impresion
-    def start_print(self):
+    def iniciar_impresion(self):
         resp = self._request("POST", "/api/job", json={"command": "start"})
         return resp is not None and resp.status_code in (200, 204)
 
     # Metodo que cancela la impresion
-    def cancel_print(self):
+    def cancelar_impresion(self):
         resp = self._request("POST", "/api/job", json={"command": "cancel"})
         return resp is not None and resp.status_code == 204
 
@@ -79,7 +79,7 @@ class OctoPrintClient:
     #####################################################################################################
 
     # Metodo que sube un archivo G-code a OctoPrint
-    def upload_gcode(self, file_content, filename):
+    def subir_gcode(self, file_content, filename):
         api_key = os.getenv("OCTOPRINT_API_KEY", "")
         try:
             # Hacemos la llamada al endpoint /api/files/local de OctoPrint, pasando como argumentos:
@@ -102,7 +102,7 @@ class OctoPrintClient:
             return {"success": False, "error": str(e)}
 
     # Metodo que obtiene la lista de los archivos gcode que hay subidos en OctoPrint
-    def list_files(self):
+    def listar_archivos(self):
         resp = self._request("GET", "/api/files") # Hacemos la llamada al endpoint /api/files de OctoPrint
         
         if resp is None or resp.status_code != 200:
@@ -126,7 +126,7 @@ class OctoPrintClient:
         ]
 
     # Metodo que selecciona un archivo para imprimir
-    def select_file(self, filename):
+    def seleccionar_archivo(self, filename):
         resp = self._request("POST", f"/api/files/local/{filename}", json={"command": "select"})
         return resp is not None and resp.status_code in (200, 204)
 
