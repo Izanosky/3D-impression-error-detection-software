@@ -248,6 +248,9 @@ if __name__ == "__main__":
         if not key_management.validar_configuracion():
             print("Configuracion no valida. Corrige los errores e intenta de nuevo.")
             sys.exit(1)
+    except KeyboardInterrupt:
+        print("\nConfiguracion cancelada por el usuario.")
+        sys.exit(1)
     except Exception as e:
         print(f"Error al validar la configuracion: {e}")
         sys.exit(1)
