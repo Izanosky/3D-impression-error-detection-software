@@ -244,8 +244,13 @@ if __name__ == "__main__":
     import sys
     import uvicorn
 
-    if not key_management.validar_configuracion():
-        print("Configuracion no valida. Corrige los errores e intenta de nuevo.")
+    try:
+        if not key_management.validar_configuracion():
+            print("Configuracion no valida. Corrige los errores e intenta de nuevo.")
+            sys.exit(1)
+    except Exception as e:
+        print(f"Error al validar la configuracion: {e}")
         sys.exit(1)
+
 
     uvicorn.run(app, host="0.0.0.0", port=8000) # Definimos aqui el run de uvicorn para no tener que ejecutarlo desde la terminal
