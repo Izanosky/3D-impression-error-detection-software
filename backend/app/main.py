@@ -94,7 +94,6 @@ async def broadcast_updates():
                     "type": "update",
                     "data": {
                         "status": status,
-                        # Aqui se integraran las detecciones de errores de vision artificial en el futuro
                         "detections": {"has_errors": False, "total_detections": 0, "classes": {}},
                     },
                 })
