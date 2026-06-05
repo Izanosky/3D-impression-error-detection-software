@@ -1,29 +1,35 @@
 # Sistema de Monitorización de Impresoras 3D
 
-Sistema de detección de errores en impresión 3D usando visión por computadora.
+Sistema de detección de errores en impresión 3D usando visión por computadora e inteligencia artificial ejecutada en el navegador.
 
 ---
 
 ## 📋 Requisitos del Sistema
 
 ### Backend (Dispositivo con OctoPrint)
-| Requisito | Versión |
+| Componente | Versión / Detalle |
 |-----------|---------|
 | Python | 3.10+ |
+| FastAPI | Framework de la API REST y WebSockets |
+| Uvicorn | Servidor ASGI para Python |
 | OctoPrint | Cualquier versión con API habilitada |
 | Cámara | Configurada en OctoPrint |
 
 ### Frontend (Cualquier dispositivo)
-| Requisito | Versión |
+| Componente | Versión / Detalle |
 |-----------|---------|
 | Node.js | 18+ |
+| Vue.js | 3.4+ (Composition API) |
+| Vite | 6.0+ |
+| Pinia | 2.1+ (Gestión de estado global) |
+| PrimeVue | 4.0+ (Librería de componentes UI) |
 | Navegador | Chrome, Firefox, Edge (moderno) |
-| Firebase | Proyecto configurado (Auth, Firestore, Storage) |
 
 ### Inteligencia Artificial (Frontend)
 | Componente | Descripción |
 |------------|-------------|
-| ONNX Runtime | El modelo de detección se ejecuta localmente en el navegador (`frontend/public/model/best.onnx`) |
+| ONNX Runtime Web | El modelo de detección se ejecuta localmente en el navegador (`frontend/public/model/best.onnx`) |
+| YOLOv8 | Arquitectura del modelo utilizado para la detección de objetos/errores |
 
 ---
 
@@ -37,41 +43,45 @@ Sistema de detección de errores en impresión 3D usando visión por computadora
 │  [ ONNX IA ]    │                    │                 │
 └────────┬────────┘                    └────────┬────────┘
          │                                      │
-         │ (Cloud)                              │ (Local Network)
+         │ (Navegador Local)                    │ (Local Network)
          ▼                                      ▼
   ┌────────────┐                         ┌─────────────┐
-  │  Firebase  │                         │  OctoPrint  │
-  │ (DB/Auth)  │                         │  + Cámara   │
+  │ Inferencia │                         │  OctoPrint  │
+  │ WebGL/WASM │                         │  + Cámara   │
   └────────────┘                         └─────────────┘
 ```
 
 ---
 
-## 🔄 Flujo de Datos
+## 🔄 Funcionamiento y Flujo de Datos
+
+El sistema está diseñado para ser ligero y eficiente, descargando el trabajo pesado (la inferencia de Inteligencia Artificial) en el dispositivo cliente (navegador web), de forma que el servidor backend (como una Raspberry Pi) solo se encargue de la comunicación y gestión básica con OctoPrint.
 
 ### Conexión Inicial
 
-1. Usuario abre el Frontend en navegador y se autentica vía Firebase.
-2. Frontend conecta vía WebSocket a `ws://[IP_BACKEND]:8000/ws`.
-3. Backend acepta la conexión WebSocket.
+1. El usuario abre el Frontend en el navegador web.
+2. El Frontend se conecta vía WebSocket a `ws://[IP_BACKEND]:8000/ws`.
+3. El Backend valida y acepta la conexión WebSocket.
+4. El Frontend descarga en memoria y prepara el modelo ONNX alojado localmente.
 
-### Ciclo de Actualización (cada 1 segundo)
+### Ciclo de Actualización (Tiempo Real)
 
-**Backend (automático):**
-1. Consulta OctoPrint API (Estado, temperaturas, progreso).
-2. Envía a todos los clientes WebSocket el estado y datos de impresión.
+**Backend (automático, cada 1 segundo):**
+1. Consulta la API de OctoPrint (Estado actual, temperaturas de extrusor y cama, porcentaje de progreso, etc.).
+2. Envía a todos los clientes conectados por WebSocket un paquete con el estado actualizado y metadatos de la impresión.
 
-**Frontend:**
-1. Recibe mensaje WebSocket con el estado.
-2. Procesa la última imagen/stream de la cámara usando el modelo ONNX en el navegador (`onnxruntime-web`).
-3. Dibuja bounding boxes sobre errores detectados.
-4. Actualiza la UI y, si es necesario, alerta al usuario o detiene la impresión.
+**Frontend (automático):**
+1. Recibe el paquete WebSocket con el estado.
+2. Captura el último fotograma (imagen) del stream de la cámara de OctoPrint.
+3. Procesa el fotograma usando el modelo ONNX directamente en el navegador (`onnxruntime-web`) apoyándose en aceleración WebGL o WebAssembly.
+4. Si se detectan errores en la impresión, dibuja *bounding boxes* (cajas delimitadoras) sobre el vídeo en tiempo real.
+5. Actualiza la interfaz gráfica, mostrando gráficos de temperatura e historial, y alerta al usuario si hay un fallo detectado.
 
 ---
 
 ## 🧠 Modelo de Inteligencia Artificial (ONNX)
 
-La aplicación utiliza un modelo de visión artificial que ahora se ejecuta **directamente en el navegador** (Client-side Inference) para liberar carga del servidor, permitiendo usar hardware menos potente (como una Raspberry Pi) para el backend.
+La aplicación utiliza un modelo de visión artificial que se ejecuta **directamente en el navegador** (Client-side Inference). Esto permite monitorizar impresoras 3D usando hardware de bajos recursos para el servidor, como una Raspberry Pi clásica que ejecuta OctoPrint.
 
 1. **Ubicación del Modelo:**
    Asegúrate de colocar tu archivo de modelo exportado a formato ONNX en la siguiente ruta:
@@ -79,7 +89,9 @@ La aplicación utiliza un modelo de visión artificial que ahora se ejecuta **di
 
 2. **Exportar desde YOLOv8:**
    Si entrenas un modelo en YOLOv8 (`.pt`), expórtalo a ONNX antes de usarlo:
-   `yolo export model=best.pt format=onnx`
+   ```bash
+   yolo export model=best.pt format=onnx
+   ```
 
 ---
 
@@ -110,36 +122,27 @@ La aplicación utiliza un modelo de visión artificial que ahora se ejecuta **di
    ```
 
 4. **Configuración inicial de OctoPrint**:
-   La primera vez que ejecutes el servidor, te pedirá por consola la **URL** y **API Key** de tu OctoPrint. Estos datos se validarán y se guardarán automáticamente en `.env.back.template`.
+   La primera vez que ejecutes el servidor, te pedirá por consola la **URL** y **API Key** de tu OctoPrint. Estos datos se validarán y se guardarán automáticamente en un archivo de entorno (`.env`).
 
-### 2. Frontend (Vue.js + Vite + Firebase)
+### 2. Frontend (Vue.js + Vite)
 
 1. Abre una terminal y navega a la carpeta del frontend:
    ```bash
    cd frontend
    ```
 
-2. Instala las dependencias:
+2. Instala las dependencias de Node.js:
    ```bash
    npm install
    ```
 
-3. **Configura Firebase**:
-   Crea un archivo `.env` en la raíz de la carpeta `frontend` y añade tus credenciales de Firebase:
-   ```env
-   VITE_FIREBASE_API_KEY=tu_api_key
-   VITE_FIREBASE_AUTH_DOMAIN=tu_auth_domain
-   VITE_FIREBASE_PROJECT_ID=tu_project_id
-   VITE_FIREBASE_STORAGE_BUCKET=tu_storage_bucket
-   VITE_FIREBASE_MESSAGING_SENDER_ID=tu_messaging_sender_id
-   VITE_FIREBASE_APP_ID=tu_app_id
-   ```
+3. Asegúrate de tener el modelo ONNX en la ruta correcta (`public/model/best.onnx`).
 
 ---
 
 ## ▶️ Ejecución
 
-Necesitas **dos terminales** abiertas simultáneamente:
+Necesitas **dos terminales** abiertas simultáneamente (o ejecutar el backend como servicio en producción):
 
 ### Terminal 1 — Backend
 
@@ -176,24 +179,24 @@ El frontend estará disponible en `http://localhost:5173`.
 TFG/
 ├── backend/
 │   ├── app/
-│   │   ├── main.py              # API + WebSocket
-│   │   ├── config.py            # Configuración
-│   │   ├── octoprint_client.py  # Cliente OctoPrint
-│   │   └── setup.py             # Gestión de claves/conexión inicial
-│   ├── requirements.txt
+│   │   ├── main.py              # API + WebSocket (FastAPI)
+│   │   ├── config.py            # Configuración general
+│   │   ├── octoprint_client.py  # Interfaz con la API de OctoPrint
+│   │   └── setup.py             # Gestión de claves y conexión inicial
+│   ├── requirements.txt         # Dependencias Python
 │   └── .env.back.template       # Plantilla env para backend
 ├── frontend/
 │   ├── public/
 │   │   └── model/
-│   │       └── best.onnx        # Modelo de IA (YOLO exportado)
+│   │       └── best.onnx        # Modelo de IA (YOLO exportado a ONNX)
 │   ├── src/
-│   │   ├── App.vue              # Shell principal
-│   │   ├── main.js              # Punto de entrada
-│   │   ├── services/            # Servicios (Firebase, Inferencia ONNX, Auth)
-│   │   ├── stores/              # Estado global (Pinia)
-│   │   ├── views/               # Páginas
-│   │   └── assets/              # Recursos estáticos
-│   └── package.json
-├── help.txt
-└── README.md
+│   │   ├── App.vue              # Shell principal de la interfaz
+│   │   ├── main.js              # Punto de entrada Vue.js
+│   │   ├── services/            # Servicios (Inferencia ONNX, API locales)
+│   │   ├── stores/              # Estado global (Pinia: printer.js, user.js)
+│   │   ├── views/               # Vistas y Páginas de la aplicación
+│   │   └── assets/              # Recursos estáticos (estilos, logos)
+│   └── package.json             # Dependencias Node.js
+├── help.txt                     # Instrucciones adicionales
+└── README.md                    # Este archivo
 ```

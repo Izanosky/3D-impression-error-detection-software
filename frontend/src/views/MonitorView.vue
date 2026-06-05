@@ -306,13 +306,21 @@ watch(() => store.mensajeCancelacionAuto, (mensaje) => {
   }
 })
 
+// Mostrar un toast cuando falla la conexión con el backend
+watch(() => store.errorConexion, (mensaje) => {
+  if (mensaje) {
+    toast.add({ severity: 'error', summary: 'Error de conexión', detail: mensaje, life: 5000 })
+    store.errorConexion = ''
+  }
+})
+
 // Actualizar la IP del backend y reconectar
 async function actualizarIp() {
   let url = direccionIp.value.trim()
   if (!url) return
   url = url.replace(/^https?:\/\//, '')
   store.guardarConfiguracion(url)
-  await store.conectar()
+  await store.conectar(true)
 }
 
 // Alternar entre conectar y desconectar

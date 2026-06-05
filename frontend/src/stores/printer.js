@@ -13,6 +13,7 @@ export const usePrinterStore = defineStore('printer', () => {
     const archivosGcode = ref([])
     const urlStream = ref('')
     const mensajeCancelacionAuto = ref('')
+    const errorConexion = ref('')
 
     // Array para acumular snapshots de progresion durante la impresion
     const progresion = ref([])
@@ -56,7 +57,7 @@ export const usePrinterStore = defineStore('printer', () => {
     // WebSocket
 
     // Establece la conexion WebSocket con el backend
-    function conectarWebSocket() {
+    function conectarWebSocket(manual = false) {
         if (!backendUrl.value) return
 
         const base = backendUrl.value.replace(/^https?:\/\//, '') // Elimina el http:// o https:// de la URL
@@ -65,6 +66,7 @@ export const usePrinterStore = defineStore('printer', () => {
         // Se ejecuta cuando se establece la conexion WebSocket
         websocket.onopen = () => {
             wsConectado.value = true
+            errorConexion.value = ''
             const baseIp = backendUrl.value.split(':')[0]
             urlStream.value = `http://${baseIp}/webcam/?action=stream`
         }
@@ -92,6 +94,10 @@ export const usePrinterStore = defineStore('printer', () => {
         // Error en la conexion con el WebSocket
         websocket.onerror = () => {
             wsConectado.value = false
+            // Solo mostramos el error si la conexion fue manual (boton de conectar)
+            if (manual) {
+                errorConexion.value = `No se pudo conectar con el backend en ${backendUrl.value}. Verifica que el servidor esté en ejecución y la IP sea correcta.`
+            }
         }
     }
 
@@ -251,11 +257,11 @@ export const usePrinterStore = defineStore('printer', () => {
     // ─── Conexion y configuracion
 
     // Nos conectamos a nuestro backend a traves de la IP que se guardo en localStorage
-    async function conectar() {
+    async function conectar(manual = false) {
         if (!backendUrl.value) return
         desconectarWebSocket(false)
         localStorage.setItem('printer_monitor_auto_connect', 'true')
-        conectarWebSocket()
+        conectarWebSocket(manual)
         await obtenerArchivos()
     }
 
@@ -331,7 +337,7 @@ export const usePrinterStore = defineStore('printer', () => {
     // Devolvemos las funciones definidas
     return {
         backendUrl, wsConectado, subiendo, archivosGcode,
-        estado, detecciones, urlStream, mensajeCancelacionAuto,
+        estado, detecciones, urlStream, mensajeCancelacionAuto, errorConexion,
         estaImprimiendo, estaPausada, tieneArchivo,
         conectar, desconectarWebSocket, enviarComando,
         pausarImpresion, reanudarImpresion, cancelarImpresion,
