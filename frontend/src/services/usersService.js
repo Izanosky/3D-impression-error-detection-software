@@ -42,6 +42,18 @@ export const getUserName = async (uid = null) => {
   return null
 }
 
+// Eliminar el documento de Firestore de un usuario por su Uid
+export const deleteUserByUid = async (uid) => {
+  const q = query(colRef, where('Uid', '==', uid))
+  const snapshot = await getDocs(q)
+  if (!snapshot.empty) {
+    const { deleteDoc } = await import('firebase/firestore')
+    await deleteDoc(snapshot.docs[0].ref)
+    return true
+  }
+  return false
+}
+
 // Actualizacion de los datos de un usuario
 export const updateUser = async (uid, data) => {
   const q = query(colRef, where('Uid', '==', uid))

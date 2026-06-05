@@ -105,6 +105,7 @@ import { useRouter } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
 import { useConfirm } from 'primevue/useconfirm'
 import { signIn, signOut, resetPassword } from '@/services/authService'
+import { deleteUserByUid } from '@/services/usersService'
 
 const router = useRouter()
 const toast = useToast()
@@ -144,6 +145,26 @@ async function onFormSubmit({ valid, values }) {
 
     // Comprobamos si el usuario ha verificado su correo electrónico
     if (!userCredential.user.emailVerified) {
+      // Comprobamos cuanto tiempo lleva la cuenta sin verificar
+      const creacion = new Date(userCredential.user.metadata.creationTime).getTime()
+      const ahora = Date.now()
+      const margen = 60 * 60 * 1000 // Ponemos un margen de 1 hora para borrar la cuenta
+
+      if (ahora - creacion > margen) {
+        // Si la cuenta lleva mas de 1 hora sin verificarse la eliminamos
+        const uid = userCredential.user.uid
+        try {
+          await deleteUserByUid(uid)       // Borramos el documento de Firestore
+          await userCredential.user.delete() // Borramos la cuenta de Firebase Auth
+        } catch (e) {
+          console.error('[Login] Error eliminando cuenta expirada:', e)
+        }
+        loginError.value = 'Credenciales incorrectas'
+        toast.add({ severity: 'error', summary: 'Error de acceso', detail: 'Email o contraseña inválidos', life: 3000 })
+        return
+      }
+
+      // Aún está dentro del plazo: simplemente avisamos
       await signOut()
       loginError.value = 'Debes verificar tu correo electrónico antes de acceder'
       toast.add({
