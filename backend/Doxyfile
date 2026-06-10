@@ -1,0 +1,51 @@
+# ===========================================================================
+# Doxyfile - Backend (Python / FastAPI)
+# ===========================================================================
+
+# --- Información del proyecto ---
+PROJECT_NAME           = "PrintErr Backend"
+PROJECT_BRIEF          = "API FastAPI para monitorización de impresoras 3D mediante OctoPrint"
+PROJECT_NUMBER         = "1.0.0"
+PROJECT_LOGO           =
+
+# --- Directorios de entrada ---
+INPUT                  = ./app
+RECURSIVE              = YES
+FILE_PATTERNS          = *.py
+EXCLUDE_PATTERNS       = */__pycache__/* */.env*
+
+# --- Comportamiento de extracción ---
+EXTRACT_ALL            = YES
+EXTRACT_PRIVATE        = YES
+EXTRACT_STATIC         = YES
+EXTRACT_LOCAL_CLASSES  = YES
+
+# --- Optimización para Python ---
+OPTIMIZE_OUTPUT_JAVA   = YES
+
+# --- Directorio de salida ---
+OUTPUT_DIRECTORY       = ./docs
+GENERATE_HTML          = YES
+GENERATE_LATEX         = NO
+
+# --- Navegación y estructura ---
+FULL_PATH_NAMES        = NO
+SOURCE_BROWSER         = YES
+INLINE_SOURCES         = NO
+
+# --- Codificación ---
+INPUT_ENCODING         = UTF-8
+DOXYFILE_ENCODING      = UTF-8
+
+# --- Diagramas (requiere Graphviz) ---
+HAVE_DOT               = NO
+COLLABORATION_GRAPH    = NO
+CALL_GRAPH             = NO
+CALLER_GRAPH           = NO
+
+# --- Apariencia HTML ---
+HTML_COLORSTYLE_HUE    = 220
+HTML_COLORSTYLE_SAT    = 100
+HTML_COLORSTYLE_GAMMA  = 80
+SEARCHENGINE           = YES
+GENERATE_TREEVIEW      = YES
