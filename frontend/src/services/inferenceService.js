@@ -7,7 +7,7 @@ let session = null
 let isInitializing = false
 
 const RUTA_MODELO = '/model/best.onnx'
-const DIMENSION = 640
+const DIMENSION = 512
 const UMBRAL_CONFIANZA = 0.4
 
 // Cargamos el modelo ONNX
