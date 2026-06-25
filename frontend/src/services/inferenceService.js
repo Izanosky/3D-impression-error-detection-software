@@ -6,7 +6,7 @@ ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/'
 let session = null
 let isInitializing = false
 
-const RUTA_MODELO = '/model/best.onnx'
+const RUTA_MODELO = '/model/nano.onnx'
 const DIMENSION = 512
 const UMBRAL_CONFIANZA = 0.4
 
